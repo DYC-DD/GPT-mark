@@ -147,136 +147,115 @@ function handleKeyDown(event) {
 document.addEventListener("keydown", handleKeyDown);
 
 /**
- * content.js – 書籤功能（只在 user 訊息上插入按鈕）
- * 這段程式碼會在只有 user(author-role="user") 的訊息旁
- * 注入「加入/移除書籤」按鈕，並使用 chrome.storage.local
- * 儲存不同聊天室的書籤列表。
+ * content.js – 書籤功能（只在 user 訊息上插入 icon 按鈕）
+ * 並依據主題 dark/light 套用底色
  */
 
-// 掃描間隔時間（毫秒），用於處理 SPA 動態載入的訊息
+// 掃描間隔（毫秒），處理 SPA 新增訊息
 const SCAN_INTERVAL = 2000;
 
-/**
- * 取得目前聊天室的唯一 key
- * 直接使用 window.location.pathname (例如 "/chat/ABC123")
- * @returns {string} 聊天室 key
- */
+// icon 路徑
+const EMPTY_ICON = "assets/icons/bookmark-star.svg";
+const FILL_ICON = "assets/icons/bookmark-star-fill.svg";
+
+/** 取得當前聊天室 key */
 function getCurrentChatKey() {
   return window.location.pathname;
 }
 
-/**
- * 從 chrome.storage.local 讀取指定聊天室的書籤列表
- * @param {function(Array<{id:string,content:string}>)} callback 讀取完成後的回呼
- */
-function fetchBookmarks(callback) {
+/** 讀書籤 */
+function fetchBookmarks(cb) {
   const key = getCurrentChatKey();
-  chrome.storage.local.get([key], (result) => {
-    const list = result[key] || [];
-    callback(list);
-  });
+  chrome.storage.local.get([key], (res) => cb(res[key] || []));
 }
 
-/**
- * 將書籤列表儲存到 chrome.storage.local
- * @param {Array<{id:string,content:string}>} list 要儲存的書籤列表
- */
+/** 存書籤 */
 function saveBookmarks(list) {
   const key = getCurrentChatKey();
   chrome.storage.local.set({ [key]: list });
 }
 
-/**
- * 檢查給定的訊息 ID 是否已被書籤
- * @param {string} id 訊息 ID
- * @param {Array<{id:string,content:string}>} list 書籤列表
- * @returns {boolean} 是否已書籤
- */
-function isMessageBookmarked(id, list) {
+/** 訊息是否已書籤 */
+function isBookmarked(id, list) {
   return list.some((item) => item.id === id);
 }
 
-/**
- * 切換書籤狀態：若已存在則移除，否則新增。
- * 完成後可透過 callback 拿到更新後列表。
- * @param {string} id 訊息 ID
- * @param {string} content 訊息內容
- * @param {function(Array)} [callback] 更新完成後的回呼
- */
-function toggleBookmark(id, content, callback) {
+/** 切換書籤 */
+function toggleBookmark(id, content, cb) {
   fetchBookmarks((list) => {
-    let updated;
-    if (isMessageBookmarked(id, list)) {
-      // 移除已存在的書籤
-      updated = list.filter((item) => item.id !== id);
-    } else {
-      // 新增書籤
-      updated = [...list, { id, content }];
-    }
-    // 儲存更新後列表
+    const updated = isBookmarked(id, list)
+      ? list.filter((item) => item.id !== id)
+      : [...list, { id, content }];
     saveBookmarks(updated);
-    if (callback) callback(updated);
+    if (cb) cb(updated);
   });
 }
 
-/**
- * 掃描所有 user 發言(ChatGPT user)的訊息節點，
- * 並在尚未注入按鈕的訊息旁注入「加入/移除書籤」按鈕
- */
+/** 依照 theme 回傳底色 */
+function getThemeColor() {
+  return document.documentElement.classList.contains("dark")
+    ? "#F3F3F3"
+    : "#5D5D5D";
+}
+
+/** 設定按鈕 icon & 底色 */
+function setButtonStyle(btn, iconPath) {
+  const url = chrome.runtime.getURL(iconPath);
+  // 設定 mask-image（Chrome 需同時設定 -webkit- 與 未加前綴）
+  btn.style.webkitMaskImage = `url(${url})`;
+  btn.style.maskImage = `url(${url})`;
+  btn.style.webkitMaskSize = "contain";
+  btn.style.maskSize = "contain";
+  btn.style.webkitMaskRepeat = "no-repeat";
+  btn.style.maskRepeat = "no-repeat";
+  btn.style.webkitMaskPosition = "center";
+  btn.style.maskPosition = "center";
+  // 底色
+  btn.style.backgroundColor = getThemeColor();
+}
+
+/** 注入書籤按鈕 */
 function setupBookmarkButtons() {
-  // 1. 只選取 data-message-author-role="user" AND data-message-id 的訊息
-  const messages = document.querySelectorAll(
+  const msgs = document.querySelectorAll(
     '[data-message-author-role="user"][data-message-id]'
   );
-
-  messages.forEach((msg) => {
+  msgs.forEach((msg) => {
     const id = msg.dataset.messageId;
-
-    // 如果已經插入按鈕，就跳過
     if (msg.querySelector(".chatgpt-bookmark-btn")) return;
 
-    // 建立按鈕元素
+    // 建立按鈕
     const btn = document.createElement("button");
     btn.className = "chatgpt-bookmark-btn";
-    // 預設樣式，可依需求調整
     Object.assign(btn.style, {
-      padding: "4px 10px",
-      fontSize: "14px",
+      width: "20px",
+      height: "20px",
+      border: "none",
+      padding: "0",
       marginLeft: "8px",
-      borderRadius: "6px",
-      border: "1px solid #999",
       cursor: "pointer",
-      transition: "all 0.2s ease-in-out",
     });
 
-    // 讀取書籤列表，再設定按鈕初始狀態（文字與樣式）
+    // 依書籤狀態設定 icon
     fetchBookmarks((list) => {
-      const booked = isMessageBookmarked(id, list);
-      btn.textContent = booked ? "移除書籤" : "加入書籤";
-      btn.style.backgroundColor = booked ? "#ffe082" : "#222";
-      btn.style.color = booked ? "#000" : "#fff";
+      const icon = isBookmarked(id, list) ? FILL_ICON : EMPTY_ICON;
+      setButtonStyle(btn, icon);
     });
 
-    // 點擊事件：切換書籤並更新按鈕狀態
+    // 點擊切換書籤 & icon
     btn.addEventListener("click", () => {
       const content = msg.innerText.trim();
-      toggleBookmark(id, content, (updatedList) => {
-        const booked = isMessageBookmarked(id, updatedList);
-        btn.textContent = booked ? "移除書籤" : "加入書籤";
-        btn.style.backgroundColor = booked ? "#ffe082" : "#222";
-        btn.style.color = booked ? "#000" : "#fff";
+      toggleBookmark(id, content, (updated) => {
+        const icon = isBookmarked(id, updated) ? FILL_ICON : EMPTY_ICON;
+        setButtonStyle(btn, icon);
       });
     });
 
-    // 將按鈕插入到 user 訊息的右上角(或尾端做後備)
+    // 插入按鈕到訊息右上角
     const header = msg.querySelector("div > div.flex.justify-between");
-    if (header) {
-      header.appendChild(btn);
-    } else {
-      msg.appendChild(btn);
-    }
+    if (header) header.appendChild(btn);
+    else msg.appendChild(btn);
   });
 }
 
-// 啟動定時掃描，每隔 SCAN_INTERVAL 處理動態載入的 user 訊息
+// 每隔 SCAN_INTERVAL 處理動態新增的訊息
 setInterval(setupBookmarkButtons, SCAN_INTERVAL);

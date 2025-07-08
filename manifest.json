@@ -20,5 +20,14 @@
   },
   "icons": {
     "128": "/assets/icons/GPT-pin.png"
-  }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/icons/bookmark-star.svg",
+        "assets/icons/bookmark-star-fill.svg"
+      ],
+      "matches": ["https://chatgpt.com/*"]
+    }
+  ]
 }
