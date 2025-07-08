@@ -3,22 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <title>ChatGPT 書籤</title>
-    <style>
-      body {
-        font-family: sans-serif;
-        padding: 10px;
-      }
-      .bookmark {
-        padding: 8px;
-        margin-bottom: 5px;
-        border: 1px solid #ccc;
-        border-radius: 8px;
-        background: #f5f5f5;
-        white-space: pre-wrap;
-      }
-    </style>
+    <link rel="stylesheet" href="sidebar.css" />
   </head>
-  <body>
+  <body class="light">
+    <button id="mood-toggle">
+      <img id="mood-icon" alt="切換主題" />
+    </button>
+
     <h3>📌 書籤訊息</h3>
     <div id="bookmark-list"></div>
     <script src="sidebar.js"></script>
