@@ -1,16 +1,19 @@
-console.log("ChatGPT Enter插件已載入！");
+console.log("ChatGPT Bookmark 插件已載入！");
 
 let sendButton = null;
 
-let enterPressCount = 0; // 追蹤 Enter 鍵按下的次數
-let enterPressTimer = null; // 用於判斷雙擊的計時器
+let enterPressCount = 0;
+let enterPressTimer = null;
 const DOUBLE_CLICK_DELAY = 200; // 雙擊的延遲時間（毫秒）
+
+/*
+ * ---------- 編輯下 Enter 雙擊送出功能 ----------
+ */
 
 /*
  * 判斷當前事件的目標元素是否為 ChatGPT 的訊息輸入框
  */
 function isChatInput(target) {
-  // 檢查多種可能的輸入框元素類型和屬性
   if (target.tagName === "TEXTAREA") return true;
   if (target.role === "textbox" && target.dataset.testid === "text-input")
     return true;
@@ -32,7 +35,6 @@ function isEditingMode() {
 
 /*
  * 嘗試找到 ChatGPT 的發送按鈕
- * 包含多種選擇器，以適應不同模式和介面變化
  */
 function findSendButton() {
   let button = document.querySelector('[data-testid="send-button"]');
@@ -145,3 +147,178 @@ function handleKeyDown(event) {
 
 // 將鍵盤事件監聽器添加到整個文檔
 document.addEventListener("keydown", handleKeyDown);
+
+/*
+ * ---------- 書籤功能 ----------
+ */
+
+// 動態載入的掃描間隔（毫秒）
+const SCAN_INTERVAL = 2000;
+
+const EMPTY_ICON = "assets/icons/bookmark-star.svg";
+const FILL_ICON = "assets/icons/bookmark-star-fill.svg";
+
+/**
+ * 取得目前聊天室 URL 路徑作為書籤儲存 key
+ */
+function getCurrentChatKey() {
+  return window.location.pathname;
+}
+
+/**
+ * 從 chrome.storage.local 中讀取目前聊天室的書籤
+ */
+function fetchBookmarks(cb) {
+  const key = getCurrentChatKey();
+  chrome.storage.local.get([key], (res) => cb(res[key] || []));
+}
+
+/**
+ * 將書籤列表存回 local storage
+ */
+function saveBookmarks(list) {
+  const key = getCurrentChatKey();
+  chrome.storage.local.set({ [key]: list });
+}
+
+/**
+ * 判斷訊息是否已是書籤
+ */
+function isBookmarked(id, list) {
+  return list.some((item) => item.id === id);
+}
+
+/**
+ * 切換書籤狀態：加入或移除，並在完成後執行 callback
+ */
+function toggleBookmark(id, content, cb) {
+  fetchBookmarks((list) => {
+    const updated = isBookmarked(id, list)
+      ? list.filter((item) => item.id !== id)
+      : [...list, { id, content }];
+    saveBookmarks(updated);
+    if (cb) cb(updated);
+  });
+}
+
+/**
+ * 取得滑鼠懸浮時要使用的背景色
+ */
+function getHoverBgColor() {
+  return document.documentElement.classList.contains("dark")
+    ? "#303030"
+    : "#E8E8E8";
+}
+
+/**
+ * 取得目前主題下對應的 icon 濾鏡
+ */
+function getIconFilter() {
+  return document.documentElement.classList.contains("dark")
+    ? "brightness(0) invert(1)"
+    : "none";
+}
+
+/**
+ * 掃描所有使用者訊息 若尚未有書籤按鈕則注入
+ */
+function setupBookmarkButtons() {
+  const msgs = document.querySelectorAll(
+    '[data-message-author-role="user"][data-message-id]'
+  );
+
+  msgs.forEach((msg) => {
+    const id = msg.dataset.messageId;
+
+    // 已有按鈕就略過
+    if (msg.querySelector(".chatgpt-bookmark-btn")) return;
+
+    // 建立按鈕
+    const btn = document.createElement("button");
+    btn.className = "chatgpt-bookmark-btn";
+    btn.title = "書籤";
+    Object.assign(btn.style, {
+      width: "32px",
+      height: "32px",
+      backgroundColor: "transparent",
+      border: "none",
+      borderRadius: "8px",
+      padding: "0",
+      marginLeft: "8px",
+      display: "inline-flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: "pointer",
+      transition: "background-color 0.2s",
+    });
+
+    // 建立 icon 圖示
+    const icon = document.createElement("img");
+    Object.assign(icon.style, {
+      width: "20px",
+      height: "20px",
+      pointerEvents: "none",
+      filter: getIconFilter(),
+    });
+    btn.appendChild(icon);
+
+    // 載入書籤狀態
+    fetchBookmarks((list) => {
+      const file = isBookmarked(id, list) ? FILL_ICON : EMPTY_ICON;
+      icon.src = chrome.runtime.getURL(file);
+      icon.style.filter = getIconFilter();
+    });
+
+    // 點擊時切換書籤狀態與 icon 圖示
+    btn.addEventListener("click", () => {
+      const content = msg.innerText.trim();
+      toggleBookmark(id, content, (updated) => {
+        const file = isBookmarked(id, updated) ? FILL_ICON : EMPTY_ICON;
+        icon.src = chrome.runtime.getURL(file);
+        icon.style.filter = getIconFilter();
+      });
+    });
+
+    // hover 效果
+    btn.addEventListener("mouseenter", () => {
+      btn.style.backgroundColor = getHoverBgColor();
+    });
+    btn.addEventListener("mouseleave", () => {
+      btn.style.backgroundColor = "transparent";
+    });
+
+    const header = msg.querySelector("div > div.flex.justify-between");
+    if (header) header.appendChild(btn);
+    else msg.appendChild(btn);
+  });
+}
+
+// 定期掃描新訊息以注入書籤按鈕
+setInterval(setupBookmarkButtons, SCAN_INTERVAL);
+
+// 滾動到特定訊息並高亮提示
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "scrollToMessage") {
+    const msgElem = document.querySelector(`[data-message-id="${message.id}"]`);
+    if (msgElem) {
+      msgElem.scrollIntoView({ behavior: "smooth", block: "start" });
+      msgElem.style.transition = "background-color 0.5s";
+      msgElem.style.backgroundColor = "#ffff99";
+      setTimeout(() => {
+        msgElem.style.backgroundColor = "";
+      }, 1000);
+    }
+    sendResponse({ result: "scrolled" });
+  }
+});
+
+// 回傳當前聊天室所有 user 訊息的順序（供 sidebar 排序）
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "getChatOrder") {
+    const elems = document.querySelectorAll(
+      '[data-message-author-role="user"][data-message-id]'
+    );
+    const order = Array.from(elems).map((el) => el.dataset.messageId);
+    sendResponse({ order });
+  }
+});
