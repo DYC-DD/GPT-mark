@@ -1,9 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "ChatGPT Tools",
-  "version": "1.0",
-  "description": "掌控您的 ChatGPT 對話。此擴充功能可讓您雙擊 Enter 鍵立即傳送訊息，而按一下 Enter 鍵則可換行，輕鬆格式化您的想法。告別誤發送！",
-  "permissions": ["activeTab", "scripting"],
+  "name": "ChatGPT Bookmark",
+  "version": "2.0",
+  "description": "ChatGPT 書籤 + 快捷傳送！訊息一鍵加書籤，側邊欄快速跳轉回顧內容。編輯訊息輸入時單擊 Enter 換行、快速雙擊送出，格式化思路不怕誤發送！",
+  "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel"],
+  "action": {
+    "default_icon": "assets/icons/GPT-pin.png",
+    "default_title": "ChatGPT Bookmark"
+  },
   "host_permissions": ["https://chatgpt.com/*"],
   "content_scripts": [
     {
@@ -11,7 +15,19 @@
       "js": ["./src/content.js"]
     }
   ],
+  "background": {
+    "service_worker": "src/background.js"
+  },
   "icons": {
-    "128": "/assets/icons/chat.png"
-  }
+    "128": "/assets/icons/GPT-pin.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/icons/bookmark-star.svg",
+        "assets/icons/bookmark-star-fill.svg"
+      ],
+      "matches": ["https://chatgpt.com/*"]
+    }
+  ]
 }
