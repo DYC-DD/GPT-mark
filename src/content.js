@@ -1,16 +1,19 @@
-console.log("ChatGPT Enter插件已載入！");
+console.log("ChatGPT Bookmark 插件已載入！");
 
 let sendButton = null;
 
-let enterPressCount = 0; // 追蹤 Enter 鍵按下的次數
-let enterPressTimer = null; // 用於判斷雙擊的計時器
+let enterPressCount = 0;
+let enterPressTimer = null;
 const DOUBLE_CLICK_DELAY = 200; // 雙擊的延遲時間（毫秒）
+
+/*
+ * ---------- 編輯下 Enter 雙擊送出功能 ----------
+ */
 
 /*
  * 判斷當前事件的目標元素是否為 ChatGPT 的訊息輸入框
  */
 function isChatInput(target) {
-  // 檢查多種可能的輸入框元素類型和屬性
   if (target.tagName === "TEXTAREA") return true;
   if (target.role === "textbox" && target.dataset.testid === "text-input")
     return true;
@@ -32,7 +35,6 @@ function isEditingMode() {
 
 /*
  * 嘗試找到 ChatGPT 的發送按鈕
- * 包含多種選擇器，以適應不同模式和介面變化
  */
 function findSendButton() {
   let button = document.querySelector('[data-testid="send-button"]');
@@ -146,30 +148,25 @@ function handleKeyDown(event) {
 // 將鍵盤事件監聽器添加到整個文檔
 document.addEventListener("keydown", handleKeyDown);
 
-/**
- * content.js – 書籤功能（只在 user 訊息上插入 icon 按鈕）
- * 按鈕尺寸 32×32px，icon 20×20px，
- * 預設透明，滑鼠懸浮才顯示主題背景色
+/*
+ * ---------- 書籤功能 ----------
  */
 
-// 處理 SPA 動態載入的掃描間隔（毫秒）
+// 動態載入的掃描間隔（毫秒）
 const SCAN_INTERVAL = 2000;
 
-// icon 檔案路徑
 const EMPTY_ICON = "assets/icons/bookmark-star.svg";
 const FILL_ICON = "assets/icons/bookmark-star-fill.svg";
 
 /**
- * 取得目前聊天室 key（pathname）
- * @returns {string}
+ * 取得目前聊天室 URL 路徑作為書籤儲存 key
  */
 function getCurrentChatKey() {
   return window.location.pathname;
 }
 
 /**
- * 從 chrome.storage.local 讀取當前聊天室的書籤列表
- * @param {function(Array)} cb 讀取完成後回呼
+ * 從 chrome.storage.local 中讀取目前聊天室的書籤
  */
 function fetchBookmarks(cb) {
   const key = getCurrentChatKey();
@@ -177,8 +174,7 @@ function fetchBookmarks(cb) {
 }
 
 /**
- * 將書籤列表存回 chrome.storage.local
- * @param {Array} list 要存的書籤陣列
+ * 將書籤列表存回 local storage
  */
 function saveBookmarks(list) {
   const key = getCurrentChatKey();
@@ -186,20 +182,14 @@ function saveBookmarks(list) {
 }
 
 /**
- * 判斷訊息是否已被書籤
- * @param {string} id 訊息 ID
- * @param {Array} list 書籤列表
- * @returns {boolean}
+ * 判斷訊息是否已是書籤
  */
 function isBookmarked(id, list) {
   return list.some((item) => item.id === id);
 }
 
 /**
- * 切換書籤：若已存在移除，否則新增，最後執行 cb
- * @param {string} id      訊息 ID
- * @param {string} content 訊息內容
- * @param {function(Array)} cb 更新後回呼
+ * 切換書籤狀態：加入或移除，並在完成後執行 callback
  */
 function toggleBookmark(id, content, cb) {
   fetchBookmarks((list) => {
@@ -212,10 +202,7 @@ function toggleBookmark(id, content, cb) {
 }
 
 /**
- * 取得滑鼠懸浮時要使用的背景色：
- *   dark 模式 → #303030
- *   light 模式 → #E8E8E8
- * @returns {string}
+ * 取得滑鼠懸浮時要使用的背景色
  */
 function getHoverBgColor() {
   return document.documentElement.classList.contains("dark")
@@ -224,8 +211,7 @@ function getHoverBgColor() {
 }
 
 /**
- * 取得 icon 濾鏡設定，使 dark 模式下為白色、light 模式保留黑色
- * @returns {string}
+ * 取得目前主題下對應的 icon 濾鏡
  */
 function getIconFilter() {
   return document.documentElement.classList.contains("dark")
@@ -234,7 +220,7 @@ function getIconFilter() {
 }
 
 /**
- * 掃描所有 user 發言的訊息，注入可點擊書籤按鈕
+ * 掃描所有使用者訊息 若尚未有書籤按鈕則注入
  */
 function setupBookmarkButtons() {
   const msgs = document.querySelectorAll(
@@ -243,6 +229,7 @@ function setupBookmarkButtons() {
 
   msgs.forEach((msg) => {
     const id = msg.dataset.messageId;
+
     // 已有按鈕就略過
     if (msg.querySelector(".chatgpt-bookmark-btn")) return;
 
@@ -251,9 +238,9 @@ function setupBookmarkButtons() {
     btn.className = "chatgpt-bookmark-btn";
     btn.title = "書籤";
     Object.assign(btn.style, {
-      width: "32px", // 寬度 32px
-      height: "32px", // 高度 32px
-      backgroundColor: "transparent", // 預設透明
+      width: "32px",
+      height: "32px",
+      backgroundColor: "transparent",
       border: "none",
       borderRadius: "8px",
       padding: "0",
@@ -265,24 +252,24 @@ function setupBookmarkButtons() {
       transition: "background-color 0.2s",
     });
 
-    // 建立 icon 元素
+    // 建立 icon 圖示
     const icon = document.createElement("img");
     Object.assign(icon.style, {
-      width: "20px", // icon 寬 20px
-      height: "20px", // icon 高 20px
+      width: "20px",
+      height: "20px",
       pointerEvents: "none",
       filter: getIconFilter(),
     });
     btn.appendChild(icon);
 
-    // 初始載入：設定 icon src 與 filter
+    // 載入書籤狀態
     fetchBookmarks((list) => {
       const file = isBookmarked(id, list) ? FILL_ICON : EMPTY_ICON;
       icon.src = chrome.runtime.getURL(file);
       icon.style.filter = getIconFilter();
     });
 
-    // 點擊時切換書籤 & 更新 icon filter
+    // 點擊時切換書籤狀態與 icon 圖示
     btn.addEventListener("click", () => {
       const content = msg.innerText.trim();
       toggleBookmark(id, content, (updated) => {
@@ -292,37 +279,29 @@ function setupBookmarkButtons() {
       });
     });
 
-    // 滑鼠移入：套用主題對應背景色
+    // hover 效果
     btn.addEventListener("mouseenter", () => {
       btn.style.backgroundColor = getHoverBgColor();
     });
-    // 滑鼠移出：恢復透明
     btn.addEventListener("mouseleave", () => {
       btn.style.backgroundColor = "transparent";
     });
 
-    // 插入按鈕到訊息右上角
     const header = msg.querySelector("div > div.flex.justify-between");
     if (header) header.appendChild(btn);
     else msg.appendChild(btn);
   });
 }
 
-// 以 SCAN_INTERVAL 定期掃描動態新增的訊息
+// 定期掃描新訊息以注入書籤按鈕
 setInterval(setupBookmarkButtons, SCAN_INTERVAL);
 
-// ← 在 content.js 最後面加上
-
-// 監聽來自 Extension 的滾動請求
+// 滾動到特定訊息並高亮提示
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "scrollToMessage") {
-    // 找到對應的訊息節點
     const msgElem = document.querySelector(`[data-message-id="${message.id}"]`);
     if (msgElem) {
-      // 平滑滾動到該訊息，置中顯示
       msgElem.scrollIntoView({ behavior: "smooth", block: "start" });
-
-      // （可選）加個 highlight 動畫
       msgElem.style.transition = "background-color 0.5s";
       msgElem.style.backgroundColor = "#ffff99";
       setTimeout(() => {
@@ -333,9 +312,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 });
 
-// 放在 content.js 最後
-
-// 回傳當前頁面所有 user 訊息的 id 陣列（DOM 順序）
+// 回傳當前聊天室所有 user 訊息的順序（供 sidebar 排序）
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "getChatOrder") {
     const elems = document.querySelectorAll(
@@ -344,5 +321,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     const order = Array.from(elems).map((el) => el.dataset.messageId);
     sendResponse({ order });
   }
-  // 先前已有的 scrollToMessage 處理留著…
 });

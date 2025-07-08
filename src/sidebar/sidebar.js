@@ -1,29 +1,15 @@
-/**
- * src/sidebar.js
- *
- * 側邊欄書籤顯示邏輯：
- * - 固定字數截斷
- * - 排序選單（依加入順序 / 依聊天順序）
- * - 主題切換（light / dark）
- */
-
-// ------------ 常數設定 ------------
-
-const MAX_CONTENT_LENGTH = 30; // 每則書籤最大顯示字數
-const SORT_KEY = "sidebar-sort-order"; // 排序方式存 localStorage 的 key
-const MOOD_KEY = "sidebar-mood"; // 主題模式存 localStorage 的 key
+const MAX_CONTENT_LENGTH = 30; // 書籤最大顯示字數
+const SORT_KEY = "sidebar-sort-order";
+const MOOD_KEY = "sidebar-mood";
 const MOON_ICON = "assets/icons/moon.svg";
 const SUN_ICON = "assets/icons/sun.svg";
 
-let CURRENT_CHAT_KEY = null; // 當前聊天室 key（pathname）
+let CURRENT_CHAT_KEY = null;
 
-// ------------ 排序功能 ------------
-
-/** 讀取儲存的排序方式，預設 'added' （依加入順序） */
+// ----- 排序功能 -----
 function getSavedSort() {
   return localStorage.getItem(SORT_KEY) || "added";
 }
-/** 儲存排序方式 */
 function saveSort(sort) {
   localStorage.setItem(SORT_KEY, sort);
 }
@@ -31,22 +17,32 @@ function saveSort(sort) {
 /** 根據排序方式載入並渲染書籤 */
 function loadSidebarBookmarks() {
   if (!CURRENT_CHAT_KEY) return;
+
   chrome.storage.local.get([CURRENT_CHAT_KEY], (res) => {
     let list = res[CURRENT_CHAT_KEY] || [];
-
     const sortOrder = getSavedSort();
+
     if (sortOrder === "chat") {
-      // 依聊天順序：向 content script 要 chat order
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (!tabs[0]?.id) return;
+
         chrome.tabs.sendMessage(
           tabs[0].id,
           { type: "getChatOrder" },
           (response) => {
+            if (chrome.runtime.lastError) {
+              console.warn(
+                "[ChatGPT Bookmark] 無法取得聊天順序：",
+                chrome.runtime.lastError.message
+              );
+              renderList(list);
+              return;
+            }
+
             const order = response?.order || [];
             list.sort((a, b) => {
-              const ia = order.indexOf(a.id),
-                ib = order.indexOf(b.id);
+              const ia = order.indexOf(a.id);
+              const ib = order.indexOf(b.id);
               return (ia === -1 ? Infinity : ia) - (ib === -1 ? Infinity : ib);
             });
             renderList(list);
@@ -78,7 +74,6 @@ function renderList(list) {
     div.style.cursor = "pointer";
     div.title = "點擊跳到該訊息";
 
-    // 點擊後發送 scroll 訊息給 content script
     div.addEventListener("click", () => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (!tabs[0]?.id) return;
@@ -93,9 +88,8 @@ function renderList(list) {
   });
 }
 
-// ------------ 聊天室切換 & 監聽 ------------
-
-/** 取得並設定當前聊天室 key，若有變動就重新載入書籤 */
+// ----- 聊天室切換 & 監聽 -----
+/** 取得並設定當前聊天室 key 若有變動就重新載入書籤 */
 function initCurrentKeyAndLoad() {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (!tabs[0]?.url) return;
@@ -114,14 +108,13 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
-// ------------ 主題切換功能 ------------
-
-/** 讀取儲存的主題，預設 light */
+// ----- 主題切換功能 -----
+/** 讀取儲存的主題 */
 function getSavedMood() {
-  return localStorage.getItem(MOOD_KEY) || "light";
+  return localStorage.getItem(MOOD_KEY) || "dark";
 }
 
-/** 套用主題：切換 body class 並更新 icon */
+/** 套用主題 */
 function applyMood(mood) {
   document.body.classList.remove("light", "dark");
   document.body.classList.add(mood);
@@ -137,14 +130,11 @@ function toggleMood() {
   applyMood(next);
 }
 
-// ------------ 初始化 ------------
-
+// ----- 初始化 -----
 document.addEventListener("DOMContentLoaded", () => {
-  // 1. 套用上次選擇的主題，並綁定按鈕
   applyMood(getSavedMood());
   document.getElementById("mood-toggle").addEventListener("click", toggleMood);
 
-  // 2. 初始化排序下拉選單
   const sortSelect = document.getElementById("sort-order");
   if (sortSelect) {
     sortSelect.value = getSavedSort();
@@ -154,7 +144,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 3. 初始化聊天室 key 檢查並定時輪詢
   initCurrentKeyAndLoad();
   setInterval(initCurrentKeyAndLoad, 1000);
 });

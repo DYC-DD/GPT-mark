@@ -5,15 +5,15 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
-/* 預設 light 模式 */
+/* light 模式 */
 body.light {
   background-color: #ffffff;
-  color: #000;
+  color: #000000;
 }
 body.light .bookmark {
   background: #f4f4f4;
   border: 1px solid #ececec;
-  color: #000;
+  color: #000000;
 }
 
 /* dark 模式 */
@@ -27,9 +27,17 @@ body.dark .bookmark {
   color: #f3f3f3;
 }
 
-h3 {
+/* Top Bar */
+#top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+}
+
+#top-bar h3 {
+  margin: 0;
   font-size: 20px;
-  margin-bottom: 0px;
 }
 
 /* 書籤區塊 */
@@ -41,7 +49,7 @@ h3 {
   font-size: 14px;
 }
 
-/* mood 切換按鈕基本樣式 */
+/* mood 切換按鈕 */
 #mood-toggle {
   position: absolute;
   top: 12px;
@@ -59,32 +67,26 @@ h3 {
   height: 100%;
   display: block;
 }
-
-/* icon 顏色 (透過 filter) */
 body.light #mood-toggle img {
-  /* light 模式下保留原始 (深灰) */
   filter: none;
 }
 body.dark #mood-toggle img {
-  /* dark 模式下把黑色 svg 反轉為白色 */
   filter: brightness(0) invert(1);
 }
 
-/* 排序容器：讓 select 緊貼左側 */
+/* 排序選單容器 */
 #sort-container {
-  margin: 0 0 10px 0; /* 上下留白 */
+  margin: 0 0 10px 0;
   display: flex;
   align-items: center;
-  justify-content: flex-end; /* 靠左 */
+  justify-content: flex-end;
 }
-
-/* Label 與 Select 間隔 */
 #sort-container label {
   margin-right: 6px;
   font-size: 14px;
 }
 
-/* 排序下拉選單樣式 */
+/* 排序選單 */
 #sort-order {
   padding: 4px 8px;
   border: none;
@@ -93,49 +95,27 @@ body.dark #mood-toggle img {
   transition: background-color 0.2s;
   font-size: 14px;
 }
-
-/* hover 效果 */
 #sort-order:hover {
   opacity: 0.8;
 }
 
-/* Light 模式背景 + 文字 */
 body.light #sort-order {
   background-color: #e8e8e8;
   color: #000;
 }
-
-/* Dark 模式背景 + 文字 */
 body.dark #sort-order {
   background-color: #303030;
   color: #fff;
 }
-
-/* 若想和 mood 按鈕一樣，select 在 hover 時才換底色 */
-/* 可額外加上： */
 body.light #sort-order {
   background-color: transparent;
 }
 body.light #sort-order:hover {
   background-color: #e8e8e8;
 }
-
 body.dark #sort-order {
   background-color: transparent;
 }
 body.dark #sort-order:hover {
   background-color: #303030;
-}
-
-/* 1. 把 top-bar 設為 flex，左右兩端對齊 */
-#top-bar {
-  display: flex;
-  justify-content: space-between; /* 左右兩端 */
-  align-items: center;
-  padding: 10px 0 0 0; /* 上下留白 */
-}
-
-/* 2. 移除 h3 的外部間距 */
-#top-bar h3 {
-  margin: 0;
 }
