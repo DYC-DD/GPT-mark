@@ -310,3 +310,39 @@ function setupBookmarkButtons() {
 
 // 以 SCAN_INTERVAL 定期掃描動態新增的訊息
 setInterval(setupBookmarkButtons, SCAN_INTERVAL);
+
+// ← 在 content.js 最後面加上
+
+// 監聽來自 Extension 的滾動請求
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "scrollToMessage") {
+    // 找到對應的訊息節點
+    const msgElem = document.querySelector(`[data-message-id="${message.id}"]`);
+    if (msgElem) {
+      // 平滑滾動到該訊息，置中顯示
+      msgElem.scrollIntoView({ behavior: "smooth", block: "start" });
+
+      // （可選）加個 highlight 動畫
+      msgElem.style.transition = "background-color 0.5s";
+      msgElem.style.backgroundColor = "#ffff99";
+      setTimeout(() => {
+        msgElem.style.backgroundColor = "";
+      }, 1000);
+    }
+    sendResponse({ result: "scrolled" });
+  }
+});
+
+// 放在 content.js 最後
+
+// 回傳當前頁面所有 user 訊息的 id 陣列（DOM 順序）
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "getChatOrder") {
+    const elems = document.querySelectorAll(
+      '[data-message-author-role="user"][data-message-id]'
+    );
+    const order = Array.from(elems).map((el) => el.dataset.messageId);
+    sendResponse({ order });
+  }
+  // 先前已有的 scrollToMessage 處理留著…
+});

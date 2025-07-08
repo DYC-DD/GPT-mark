@@ -5,12 +5,19 @@
     <title>ChatGPT 書籤</title>
     <link rel="stylesheet" href="sidebar.css" />
   </head>
-  <body class="light">
-    <button id="mood-toggle">
-      <img id="mood-icon" alt="切換主題" />
-    </button>
-
-    <h3>📌 書籤訊息</h3>
+  <body class="dark">
+    <div id="top-bar">
+      <h3>📌 書籤訊息</h3>
+      <button id="mood-toggle">
+        <img id="mood-icon" alt="切換主題" />
+      </button>
+    </div>
+    <div id="sort-container">
+      <select id="sort-order">
+        <option value="chat">依聊天順序</option>
+        <option value="added">依加入順序</option>
+      </select>
+    </div>
     <div id="bookmark-list"></div>
     <script src="sidebar.js"></script>
   </body>

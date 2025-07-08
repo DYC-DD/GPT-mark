@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "ChatGPT Tools",
+  "name": "ChatGPT Bookmark",
   "version": "2.0",
   "description": "掌控您的 ChatGPT 對話。此擴充功能可讓您雙擊 Enter 鍵立即傳送訊息，而按一下 Enter 鍵則可換行，輕鬆格式化您的想法。告別誤發送！",
   "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel"],
