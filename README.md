@@ -1,6 +1,25 @@
-# ChatGPT Chrome-Extension
+# ChatGPT Bookmark Chrome-Extension
 
-這是一款為 [ChatGPT](https://chatgpt.com/) 網頁介面設計的 Chrome 小工具。此擴充功能可讓您**在編輯框內雙擊 Enter 鍵立即傳送訊息，而按一下 Enter 鍵則可換行**，讓您更直覺地控制訊息格式化與送出行為，告別誤發送的困擾！
+**「重點訊息總是被大量回覆淹沒，有用的內容又常在滑動中遺失，怎麼快速標記並精準跳回？」**
+
+這是一款為 [ChatGPT](https://chatgpt.com/) 網頁介面設計的 Chrome 小工具。為對話加上書籤與快捷傳送功能，支援側邊欄書籤導航、編輯時雙擊 Enter 快速送出訊息，幫助你高效回顧與組織聊天內容！
+
+## 使用說明
+
+**書籤功能**
+
+- 點擊使用者訊息下方「**書籤按鈕**」即可加入書籤
+- 點選側邊欄書籤即可**自動滾動到該訊息**，並高亮顯示
+- 提供 **依聊天順序 / 加入順序** 排序選項
+- 書籤儲存在 `chrome.storage.local`，依聊天室分開儲存
+- 側邊欄支援 **亮色 / 暗色模式** 可手動切換，並記錄偏好
+
+**編輯訊息下快捷傳送**
+
+- 原本 ChatGPT 編輯訊息時，需手動點擊「送出按鈕」才能傳送
+- 現在只需 **快速雙擊 Enter** 即可快速傳送
+  - `單次 Enter` / `Shift + Enter` 為換行
+  - `雙擊 Enter` 為送出訊息
 
 ## 安裝方式
 
@@ -10,21 +29,15 @@
    git clone git@github.com:DYC-DD/chatgpt-chrome-extension.git
    ```
 
-2. 打開 Chrome 瀏覽器，輸入 `chrome://extensions`
+2. 打開 Chrome 瀏覽器，輸入
+   ```bash
+   chrome://extensions
+   ```
 3. 開啟右上角的「開發人員模式」
 4. 點擊「載入未封裝項目」
 5. 選取此專案資料夾
 6. 開啟或重新整理 [ChatGPT](https://chatgpt.com/) 即可使用
 
-## 使用說明
-
-**在編輯回覆下：**
-
-- `Enter` 單次按下為換行
-- `Shift + Enter` 強制換行
-- `Enter` 快速連按兩次立即送出訊息
-
 ## 注意事項
 
 > - 本擴充功能僅作用於 [ChatGPT 官方網站](https://chatgpt.com/)
-> - 若日後網站介面變動，需更新 [content.js](content.js)中的 `querySelector` 選擇器以維持功能正常
