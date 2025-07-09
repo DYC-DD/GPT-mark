@@ -5,25 +5,13 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
-/* light 模式 */
+/* Theme */
 body.light {
   background-color: #ffffff;
   color: #000000;
 }
-body.light .bookmark {
-  background: #f4f4f4;
-  border: 1px solid #ececec;
-  color: #000000;
-}
-
-/* dark 模式 */
 body.dark {
   background-color: #212121;
-  color: #f3f3f3;
-}
-body.dark .bookmark {
-  background: #303030;
-  border: 1px solid #454545;
   color: #f3f3f3;
 }
 
@@ -34,7 +22,6 @@ body.dark .bookmark {
   align-items: center;
   padding-top: 10px;
 }
-
 #top-bar h3 {
   margin: 0;
   font-size: 20px;
@@ -42,11 +29,24 @@ body.dark .bookmark {
 
 /* 書籤區塊 */
 .bookmark {
+  position: relative;
   padding: 8px;
   margin-bottom: 5px;
   border-radius: 20px;
   white-space: pre-wrap;
   font-size: 14px;
+  padding-right: 80px;
+}
+
+body.light .bookmark {
+  background: #f4f4f4;
+  border: 1px solid #ececec;
+  color: #000000;
+}
+body.dark .bookmark {
+  background: #303030;
+  border: 1px solid #454545;
+  color: #f3f3f3;
 }
 
 /* mood 切換按鈕 */
@@ -76,21 +76,21 @@ body.dark #mood-toggle img {
 
 /* 排序選單容器 */
 #sort-container {
-  margin: 0 0 10px 0;
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  margin-bottom: 10px;
 }
 #sort-container label {
   margin-right: 6px;
   font-size: 14px;
 }
 
-/* 排序選單 */
 #sort-order {
   padding: 4px 8px;
   border: none;
-  border-radius: 6px;
+  border-radius: 999px;
+  background-color: transparent;
   cursor: pointer;
   transition: background-color 0.2s;
   font-size: 14px;
@@ -103,19 +103,154 @@ body.light #sort-order {
   background-color: #e8e8e8;
   color: #000;
 }
-body.dark #sort-order {
-  background-color: #303030;
-  color: #fff;
-}
-body.light #sort-order {
-  background-color: transparent;
-}
 body.light #sort-order:hover {
   background-color: #e8e8e8;
 }
 body.dark #sort-order {
-  background-color: transparent;
+  background-color: #303030;
+  color: #fff;
 }
 body.dark #sort-order:hover {
   background-color: #303030;
+}
+
+/* hashtag 區塊 */
+#hashtag-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.hashtag-item {
+  /* background-color: transparent; */
+  /* color: inherit; */
+  border: 1px solid;
+  border-radius: 999px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+body.light .hashtag-item {
+  border-color: #ececec;
+}
+body.light .hashtag-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+  border-color: #dddddd;
+}
+body.light .hashtag-item.selected {
+  background-color: rgba(0, 0, 0, 0.05);
+  border-color: #cccccc;
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2);
+  color: #333333;
+}
+body.dark .hashtag-item {
+  border-color: #454545;
+}
+body.dark .hashtag-item:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: #5a5a5a;
+}
+body.dark .hashtag-item.selected {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: #666666;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
+  color: #ffffff;
+}
+
+/* 書籤內的標籤按鈕 */
+.bookmark .tag-btn {
+  position: absolute;
+  top: 50%;
+  right: 2px;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  padding: 4px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bookmark.light .tag-btn {
+  background: #e0e0e0;
+}
+.bookmark.dark .tag-btn {
+  background: #505050;
+  color: #fff;
+}
+.tag-btn:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+body.dark .tag-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+.tag-btn .tag-icon {
+  width: 16px;
+  height: 16px;
+  transition: filter 0.2s;
+}
+body.light .tag-btn .tag-icon {
+  filter: none;
+}
+body.dark .tag-btn .tag-icon {
+  filter: brightness(0) invert(1);
+}
+
+/* 書籤內的標籤列表 */
+.bookmark .tags-list {
+  margin-top: 4px;
+  font-size: 12px;
+  color: #888;
+}
+.tags-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.tag-item {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+body.light .tag-item {
+  background-color: #e0e0e0;
+  color: #50505090;
+}
+body.dark .tag-item {
+  background-color: #505050;
+  color: #e0e0e090;
+}
+
+/* 刪除按鈕 */
+.remove-tag-btn {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  transition: color 0.2s;
+  padding: 0 2px 0 6px;
+}
+
+body.light .remove-tag-btn {
+  color: #50505090;
+}
+body.light .remove-tag-btn:hover {
+  color: #f66;
+}
+body.dark .remove-tag-btn {
+  color: #e0e0e090;
+}
+body.dark .remove-tag-btn:hover {
+  color: #f66;
 }
