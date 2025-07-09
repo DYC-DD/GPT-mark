@@ -29,10 +29,18 @@ chrome.runtime.onInstalled.addListener(() => {
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
 });
 
-// 3. 點擊工具列按鈕時：先更新此 tab 的 enabled 再開啟
-chrome.action.onClicked.addListener(async ({ tab }) => {
+// 3. 點擊工具列按鈕時 先更新啟用狀態再在允許網域下開啟側邊欄
+chrome.action.onClicked.addListener(async (tab) => {
   await updateSidePanelForTab(tab.id, tab.url);
-  await chrome.sidePanel.open({ tabId: tab.id });
+  try {
+    const origin = new URL(tab.url || "").origin;
+    if (origin === CHATGPT_ORIGIN) {
+      // 僅在允許的網域下才真正呼叫 open
+      await chrome.sidePanel.open({ tabId: tab.id });
+    }
+  } catch (e) {
+    console.warn("[ChatGPT Bookmark] 無法開啟側邊欄：", e);
+  }
 });
 
 // 4. 分頁載入完成後：動態啟／隱側邊欄
