@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChatGPT Bookmark",
-  "version": "2.0.1",
+  "version": "2.1.0",
   "description": "ChatGPT 書籤 + 快捷傳送！訊息一鍵加書籤，側邊欄快速跳轉回顧內容。編輯訊息輸入時單擊 Enter 換行、快速雙擊送出，格式化思路不怕誤發送！",
   "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel"],
   "action": {
