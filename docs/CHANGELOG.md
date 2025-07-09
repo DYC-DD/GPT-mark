@@ -2,6 +2,12 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [2.0.1] - 2025-07-09
+
+- 修復非 `https://chatgpt.com/*` 下點擊工具跳出 error message
+
+### Fixed
+
 ## [2.0.0] - 2025-07-09
 
 ### Added
