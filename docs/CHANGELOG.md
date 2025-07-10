@@ -2,6 +2,14 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [2.1.1] - 2025-07-10
+
+### Added
+
+- 新增多尺寸 logo 圖示：
+  - `16x16`、`48x48`、`128x128` 等尺寸支援
+  - 符合 Chrome Web Store 上架需求與系統相容性
+
 ## [2.1.0] - 2025-07-10
 
 ### Added
@@ -13,9 +21,9 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
 
 ## [2.0.1] - 2025-07-09
 
-- 修復非 `https://chatgpt.com/*` 下點擊工具跳出 error message
-
 ### Fixed
+
+- 修復非 `https://chatgpt.com/*` 下點擊工具跳出 error message
 
 ## [2.0.0] - 2025-07-09
 
