@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "ChatGPT Bookmark",
-  "version": "2.1.1",
-  "description": "ChatGPT 書籤 + 快捷傳送！訊息一鍵加書籤，側邊欄快速跳轉回顧內容。編輯訊息輸入時單擊 Enter 換行、快速雙擊送出，格式化思路不怕誤發送！",
+  "default_locale": "zh_TW",
+  "version": "2.2.0",
+  "name": "__MSG_name__",
+  "description": "__MSG_description__",
   "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel"],
   "action": {
     "default_icon": "assets/logo/GPT-pin16.png",

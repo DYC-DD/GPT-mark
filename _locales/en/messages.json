@@ -1,0 +1,42 @@
+{
+  "name": {
+    "message": "ChatGPT Bookmark",
+    "description": "Extension name"
+  },
+  "description": {
+    "message": "ChatGPT Bookmark & Quick Jump! One-click to bookmark, sidebar to revisit. In edit mode, press Enter for line breaks, double-click to send — no more misfires!",
+    "description": "Extension description"
+  },
+  "sidebarTitle": {
+    "message": "📌 Bookmarked Messages",
+    "description": "Sidebar header"
+  },
+  "sortChat": {
+    "message": "By Chat Order",
+    "description": "Sort option: chat order"
+  },
+  "sortAdded": {
+    "message": "By Added Order",
+    "description": "Sort option: added order"
+  },
+  "languageZh": {
+    "message": "中文",
+    "description": "Label for Chinese in language dropdown"
+  },
+  "languageEn": {
+    "message": "English",
+    "description": "Label for English in language dropdown"
+  },
+  "languageJa": {
+    "message": "日本語",
+    "description": "Label for Japanese in language dropdown"
+  },
+  "addHashtagPrompt": {
+    "message": "Please enter hashtag:",
+    "description": "Prompt when adding a hashtag"
+  },
+  "scrollToMessageTooltip": {
+    "message": "Click to jump to the message",
+    "description": "Tooltip for jumping to the selected message"
+  }
+}
