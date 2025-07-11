@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "default_locale": "zh_TW",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "name": "__MSG_name__",
   "description": "__MSG_description__",
   "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel"],
@@ -9,10 +9,10 @@
     "default_icon": "assets/logo/GPT-pin16.png",
     "default_title": "ChatGPT Bookmark"
   },
-  "host_permissions": ["https://chatgpt.com/*"],
+  "host_permissions": ["https://chat.openai.com/*", "https://chatgpt.com/*"],
   "content_scripts": [
     {
-      "matches": ["https://chatgpt.com/*"],
+      "matches": ["https://chat.openai.com/*", "https://chatgpt.com/*"],
       "js": ["./src/content.js"]
     }
   ],
@@ -30,7 +30,7 @@
         "assets/icons/bookmark-star.svg",
         "assets/icons/bookmark-star-fill.svg"
       ],
-      "matches": ["https://chatgpt.com/*"]
+      "matches": ["https://chat.openai.com/*", "https://chatgpt.com/*"]
     }
   ]
 }
