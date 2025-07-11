@@ -2,6 +2,14 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [2.2.1] - 2025-07-12
+
+### Fixed
+
+- 修正 `manifest.json` 中 `matches` 與 `host_permissions` 欄位設定
+  - 確保 content script 僅注入 `https://chatgpt.com/*` 與 `https://chat.openai.com/*` 頁面
+- 避免在非 ChatGPT 網域錯誤載入腳本
+
 ## [2.2.0] - 2025-07-11
 
 ### Added
