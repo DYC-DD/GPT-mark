@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "ChatGPT Bookmark",
-  "version": "2.1.0",
-  "description": "ChatGPT 書籤 + 快捷傳送！訊息一鍵加書籤，側邊欄快速跳轉回顧內容。編輯訊息輸入時單擊 Enter 換行、快速雙擊送出，格式化思路不怕誤發送！",
+  "default_locale": "zh_TW",
+  "version": "2.2.0",
+  "name": "__MSG_name__",
+  "description": "__MSG_description__",
   "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel"],
   "action": {
-    "default_icon": "assets/icons/GPT-pin.png",
+    "default_icon": "assets/logo/GPT-pin16.png",
     "default_title": "ChatGPT Bookmark"
   },
   "host_permissions": ["https://chatgpt.com/*"],
@@ -19,7 +20,9 @@
     "service_worker": "src/background.js"
   },
   "icons": {
-    "128": "/assets/icons/GPT-pin.png"
+    "16": "/assets/logo/GPT-pin16.png",
+    "48": "/assets/logo/GPT-pin48.png",
+    "128": "/assets/logo/GPT-pin128.png"
   },
   "web_accessible_resources": [
     {

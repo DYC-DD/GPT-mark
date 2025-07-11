@@ -5,7 +5,10 @@ const MOOD_KEY = "sidebar-mood"; // 主題模式儲存鍵
 const MOON_ICON = "assets/icons/moon.svg";
 const SUN_ICON = "assets/icons/sun.svg";
 const HASHTAG_ICON = "assets/icons/hashtag.svg";
+const LANGUAGE_KEY = "sidebar-language";
+const LOCALE_MAP = { zh: "zh_TW", en: "en", ja: "ja" }; // 語系對應
 
+let messages = {}; // 儲存翻譯文字
 let CURRENT_CHAT_KEY = null; // 當前聊天室路徑
 let selectedTags = new Set(); // 選取的 Hashtag
 
@@ -15,6 +18,42 @@ function getSavedSort() {
 }
 function saveSort(sort) {
   localStorage.setItem(SORT_KEY, sort); // 儲存排序方式
+}
+
+// ----- 語言設定 -----
+async function loadMessages(lang) {
+  const loc = LOCALE_MAP[lang] || LOCALE_MAP.zh;
+  const url = chrome.runtime.getURL(`_locales/${loc}/messages.json`);
+  const res = await fetch(url);
+  const json = await res.json();
+  messages = Object.fromEntries(
+    Object.entries(json).map(([k, v]) => [k, v.message])
+  );
+}
+
+function applyMessages() {
+  // 套用翻譯文字到畫面
+  document.getElementById("sidebar-title").textContent = messages.sidebarTitle;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
+    el.textContent = messages[key] || "";
+  });
+}
+
+async function initLanguage() {
+  // 初始化語言選單
+  const sel = document.getElementById("language-select");
+  const saved = localStorage.getItem(LANGUAGE_KEY) || "zh";
+  sel.value = saved;
+  await loadMessages(saved);
+  applyMessages();
+  sel.addEventListener("change", async () => {
+    const lang = sel.value;
+    localStorage.setItem(LANGUAGE_KEY, lang);
+    await loadMessages(lang);
+    applyMessages();
+    loadSidebarBookmarks();
+  });
 }
 
 // ----- 讀取書籤與 Hashtag  -----
@@ -94,7 +133,7 @@ function renderList(list, filterTag = null) {
     div.className = "bookmark";
     div.textContent = displayText;
     div.style.cursor = "pointer";
-    div.title = "點擊跳到該訊息";
+    div.title = messages.scrollToMessageTooltip;
     // 跳轉到原訊息
     div.addEventListener("click", () => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -147,7 +186,7 @@ function renderList(list, filterTag = null) {
 
 // ----- 新增 Hashtag -----
 function onAddTag(bookmarkId) {
-  const tag = prompt("新增 Hashtag 內容：");
+  const tag = prompt(messages.addHashtagPrompt);
   if (!tag) return;
   fetchBookmarksWithTags((list) => {
     const updated = list.map((item) => {
@@ -266,18 +305,19 @@ function toggleMood() {
 }
 
 // ----- 初始化 -----
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await initLanguage();
+  loadSidebarBookmarks();
+
   applyMood(getSavedMood());
   document.getElementById("mood-toggle").addEventListener("click", toggleMood);
 
   const sortSelect = document.getElementById("sort-order");
-  if (sortSelect) {
-    sortSelect.value = getSavedSort();
-    sortSelect.addEventListener("change", () => {
-      saveSort(sortSelect.value);
-      loadSidebarBookmarks();
-    });
-  }
+  sortSelect.value = getSavedSort();
+  sortSelect.addEventListener("change", () => {
+    saveSort(sortSelect.value);
+    loadSidebarBookmarks();
+  });
 
   initCurrentKeyAndLoad();
   setInterval(initCurrentKeyAndLoad, 1000);

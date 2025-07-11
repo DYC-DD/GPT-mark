@@ -1,6 +1,12 @@
-# ChatGPT Bookmark Chrome-Extension
+<div align="center">
+
+# ChatGPT Mark
+
+![](./assets/logo/GPT-pin48.png)
 
 **「重點訊息總是被大量回覆淹沒，有用的內容又常在滑動中遺失，怎麼快速標記並精準跳回？」**
+
+</div>
 
 這是一款為 [ChatGPT](https://chatgpt.com/) 網頁介面設計的 Chrome 小工具。為對話加上書籤與快捷傳送功能，支援側邊欄書籤導航、編輯時雙擊 Enter 快速送出訊息，幫助你高效回顧與組織聊天內容！
 
@@ -15,6 +21,7 @@
 - 側邊欄支援 **亮色 / 暗色模式** 可手動切換，並記錄偏好
 - 書籤可新增刪除**自訂的 hashtag** 以進行分類
 - 側邊欄可**依 hashtag 過濾**顯示書籤
+- 支援 **`zh-TW`、`en`、`ja` 語言**介面自動 / 手動切換
 
 **編輯訊息下快捷傳送**
 
@@ -39,6 +46,30 @@
 4. 點擊「載入未封裝項目」
 5. 選取此專案資料夾
 6. 開啟或重新整理 [ChatGPT](https://chatgpt.com/) 即可使用
+
+## Demo 預覽
+
+以下為 ChatGPT Mark 的實際操作示意：
+
+**新增書籤：**
+
+![](./assets/demo/add_bookmark.gif)
+
+**新增 hashtag 和切換排序：**
+
+![](./assets/demo/add_hashtag_and_sort.gif)
+
+**自動滾動到該訊息：**
+
+![](./assets/demo/auto_scroll_to_message.gif)
+
+**hashtag 分類：**
+
+![](./assets/demo/hashtag_category.gif)
+
+**移除 hashtag 和書籤：**
+
+![](./assets/demo/remove_hashtag_and_bookmark.gif)
 
 ## 注意事項
 

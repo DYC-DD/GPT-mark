@@ -87,13 +87,15 @@ body.dark #mood-toggle img {
 }
 
 #sort-order {
-  padding: 4px 8px;
+  padding: 4px 10px;
   border: none;
   border-radius: 999px;
   background-color: transparent;
   cursor: pointer;
   transition: background-color 0.2s;
   font-size: 14px;
+  text-align: center;
+  text-align-last: center;
 }
 #sort-order:hover {
   opacity: 0.8;
@@ -123,8 +125,6 @@ body.dark #sort-order:hover {
 }
 
 .hashtag-item {
-  /* background-color: transparent; */
-  /* color: inherit; */
   border: 1px solid;
   border-radius: 999px;
   padding: 4px 8px;
@@ -253,4 +253,36 @@ body.dark .remove-tag-btn {
 }
 body.dark .remove-tag-btn:hover {
   color: #f66;
+}
+
+/* 語言選單 */
+#lang-container {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 4px 0;
+  background: transparent;
+}
+
+#language-select {
+  padding: 4px 10px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 14px;
+  text-align: center;
+  text-align-last: center;
+}
+
+body.light #language-select {
+  background-color: #e8e8e8;
+  color: #000;
+}
+body.dark #language-select {
+  background-color: #303030;
+  color: #fff;
 }
