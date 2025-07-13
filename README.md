@@ -32,11 +32,15 @@
 
 ## 安裝方式
 
-1. clone 此專案至您想存放位置
+1. 下載此專案至您想存放位置
 
-   ```bash
-   git clone git@github.com:DYC-DD/chatgpt-chrome-extension.git
-   ```
+   - 下載方式：[點此下載](https://github.com/DYC-DD/GPT-mark/archive/refs/tags/v2.2.1.zip)
+
+   - clone 方式：
+
+     ```bash
+     git clone --branch release git@github.com:DYC-DD/GPT-mark.git
+     ```
 
 2. 打開 Chrome 瀏覽器，輸入
    ```bash
