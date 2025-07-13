@@ -51,30 +51,6 @@
 5. 選取此專案資料夾
 6. 開啟或重新整理 [ChatGPT](https://chatgpt.com/) 即可使用
 
-## Demo 預覽
-
-以下為 ChatGPT Mark 的實際操作示意：
-
-**新增書籤：**
-
-![](./assets/demo/add_bookmark.gif)
-
-**新增 hashtag 和切換排序：**
-
-![](./assets/demo/add_hashtag_and_sort.gif)
-
-**自動滾動到該訊息：**
-
-![](./assets/demo/auto_scroll_to_message.gif)
-
-**hashtag 分類：**
-
-![](./assets/demo/hashtag_category.gif)
-
-**移除 hashtag 和書籤：**
-
-![](./assets/demo/remove_hashtag_and_bookmark.gif)
-
 ## 注意事項
 
 > - 本擴充功能僅作用於 [ChatGPT 官方網站](https://chatgpt.com/)
