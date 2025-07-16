@@ -1,8 +1,8 @@
 <div align="center">
 
-# ChatGPT Mark
+# [ChatGPT Mark](https://dyc-dd.github.io/GPT-mark/)
 
-![](./assets/logo/GPT-pin48.png)
+[![](./assets/logo/GPT-pin48.png)](https://dyc-dd.github.io/GPT-mark/)
 
 **「重點訊息總是被大量回覆淹沒，有用的內容又常在滑動中遺失，怎麼快速標記並精準跳回？」**
 
