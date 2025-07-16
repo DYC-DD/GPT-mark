@@ -13,3 +13,4 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
 - `GithubStars` 元件，動態擷取 GitHub 專案星星數與頭像。
 - RWD 響應式設計，支援桌面與行動裝置。
 - 支援懸浮互動與視差效果（滑鼠移動時卡片旋轉與光源變化）。
+- 呼叫 GitHub API 取得最新 release 的 zipball_url
