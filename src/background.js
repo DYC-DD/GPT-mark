@@ -1,5 +1,5 @@
 // 1. 定義網站的 origin
-const CHATGPT_ORIGIN = "https://chatgpt.com";
+const ALLOWED_ORIGINS = ["https://chat.openai.com", "https://chatgpt.com"];
 
 // 根據 tabId 與 URL 更新該分頁的側邊欄狀態
 async function updateSidePanelForTab(tabId, url) {
@@ -10,7 +10,7 @@ async function updateSidePanelForTab(tabId, url) {
 
   // 只在 chatgpt.com 開啟
   const origin = new URL(url).origin;
-  if (origin === CHATGPT_ORIGIN) {
+  if (ALLOWED_ORIGINS.includes(origin)) {
     await chrome.sidePanel.setOptions({
       tabId,
       path: "src/sidebar/sidebar.html",
@@ -34,7 +34,7 @@ chrome.action.onClicked.addListener(async (tab) => {
   await updateSidePanelForTab(tab.id, tab.url);
   try {
     const origin = new URL(tab.url || "").origin;
-    if (origin === CHATGPT_ORIGIN) {
+    if (ALLOWED_ORIGINS.includes(origin)) {
       // 僅在允許的網域下才真正呼叫 open
       await chrome.sidePanel.open({ tabId: tab.id });
     }

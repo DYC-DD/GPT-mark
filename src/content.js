@@ -322,3 +322,19 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     sendResponse({ order });
   }
 });
+
+// 監聽側邊欄滾動指令
+chrome.runtime.onMessage.addListener((message) => {
+  const chatContainer = document.querySelector("main div[class*='overflow-y']");
+  if (!chatContainer) return;
+
+  if (message.type === "scroll-to-top") {
+    chatContainer.scrollTo({ top: 0, behavior: "smooth" });
+  }
+  if (message.type === "scroll-to-bottom") {
+    chatContainer.scrollTo({
+      top: chatContainer.scrollHeight,
+      behavior: "smooth",
+    });
+  }
+});
