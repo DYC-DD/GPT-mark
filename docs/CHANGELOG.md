@@ -2,6 +2,26 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [2.2.2] - 2025-07-19
+
+### Added
+
+- 新增「快速滾動」按鈕：
+  - 在側邊欄下方加入「滾動至最上方」與「滾動至最下方」功能按鈕
+  - 支援平滑動畫滾動至 ChatGPT 對話最上下端
+
+### Changed
+
+- 調整側邊欄 UI/UX：
+  - 書籤按鈕 hover 效果更柔和
+  - 調整元件間距與主題一致性
+  - scroll button、語言選單、排序選單位置與樣式微調
+
+### Fixed
+
+- 修復部分狀況下錯誤訊息未被正確捕捉或處理
+  - 加強對 `chrome.runtime.lastError` 的錯誤處理顯示與 fallback 行為
+
 ## [2.2.1] - 2025-07-12
 
 ### Fixed
