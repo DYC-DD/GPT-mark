@@ -321,6 +321,17 @@ document.addEventListener("DOMContentLoaded", async () => {
 
   initCurrentKeyAndLoad();
   setInterval(initCurrentKeyAndLoad, 1000);
+
+  document.getElementById("scroll-top-btn").addEventListener("click", () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.sendMessage(tabs[0].id, { type: "scroll-to-top" });
+    });
+  });
+  document.getElementById("scroll-bottom-btn").addEventListener("click", () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.sendMessage(tabs[0].id, { type: "scroll-to-bottom" });
+    });
+  });
 });
 
 // ----- 自動刷新 -----

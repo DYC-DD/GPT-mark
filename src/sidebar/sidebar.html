@@ -8,9 +8,6 @@
   <body class="dark">
     <div id="top-bar">
       <h3 id="sidebar-title"></h3>
-      <button id="mood-toggle">
-        <img id="mood-icon" alt="切換主題" />
-      </button>
     </div>
 
     <div id="hashtag-container"></div>
@@ -20,16 +17,28 @@
         <option value="chat" data-i18n="sortChat"></option>
         <option value="added" data-i18n="sortAdded"></option>
       </select>
+
+      <button id="mood-toggle">
+        <img id="mood-icon" alt="切換主題" />
+      </button>
     </div>
 
     <div id="bookmark-list"></div>
 
-    <div id="lang-container">
+    <div id="lang-control-group">
+      <button id="scroll-top-btn" class="scroll-btn">
+        <img src="../../assets/icons/up.svg" alt="Scroll to top" />
+      </button>
+
       <select id="language-select">
         <option value="zh" data-i18n="languageZh"></option>
         <option value="en" data-i18n="languageEn"></option>
         <option value="ja" data-i18n="languageJa"></option>
       </select>
+
+      <button id="scroll-bottom-btn" class="scroll-btn">
+        <img src="../../assets/icons/down.svg" alt="Scroll to bottom" />
+      </button>
     </div>
 
     <script src="sidebar.js"></script>

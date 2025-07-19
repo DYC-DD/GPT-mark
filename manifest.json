@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "default_locale": "zh_TW",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "name": "__MSG_name__",
   "description": "__MSG_description__",
   "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel"],
