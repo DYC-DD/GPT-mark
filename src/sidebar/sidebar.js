@@ -12,6 +12,14 @@ let messages = {}; // 儲存翻譯文字
 let CURRENT_CHAT_KEY = null; // 當前聊天室路徑
 let selectedTags = new Set(); // 選取的 Hashtag
 
+let chatReady = false;
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "chatgpt-ready") {
+    chatReady = true;
+    loadSidebarBookmarks();
+  }
+});
+
 // ----- 排序功能 -----
 function getSavedSort() {
   return localStorage.getItem(SORT_KEY) || "added"; // 讀取排序方式
@@ -86,15 +94,20 @@ function loadSidebarBookmarks() {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (!tabs[0]?.id) return;
 
+        // 只在 ChatGPT 網域才嘗試要求順序
+        const origin = new URL(tabs[0].url || "").origin;
+        if (
+          !["https://chat.openai.com", "https://chatgpt.com"].includes(origin)
+        ) {
+          renderList(list);
+          return;
+        }
+
         chrome.tabs.sendMessage(
           tabs[0].id,
           { type: "getChatOrder" },
           (response) => {
             if (chrome.runtime.lastError) {
-              console.warn(
-                "[ChatGPT Bookmark] 無法取得聊天順序：",
-                chrome.runtime.lastError.message
-              );
               renderList(list);
               return;
             }
