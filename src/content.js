@@ -338,3 +338,5 @@ chrome.runtime.onMessage.addListener((message) => {
     });
   }
 });
+
+chrome.runtime.sendMessage({ type: "chatgpt-ready" });
