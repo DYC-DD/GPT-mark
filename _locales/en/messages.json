@@ -38,5 +38,21 @@
   "scrollToMessageTooltip": {
     "message": "Click to jump to the message",
     "description": "Tooltip for jumping to the selected message"
+  },
+  "settingsTitle": {
+    "message": "Settings",
+    "description": "Settings page title"
+  },
+  "themeLight": {
+    "message": "Light",
+    "description": "Light theme label"
+  },
+  "themeSystem": {
+    "message": "System",
+    "description": "System theme label"
+  },
+  "themeDark": {
+    "message": "Dark",
+    "description": "Dark theme label"
   }
 }

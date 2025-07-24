@@ -1,43 +1,139 @@
+@import url("https://fonts.googleapis.com/css2?family=Chiron+Hei+HK:ital,wght@0,200..900;1,200..900&display=swap");
+
+body.light {
+  --bg: #ffffff;
+  --fg: #2a2a2a;
+}
+body.dark {
+  --bg: #212121;
+  --fg: #f3f3f3;
+}
+
 body {
-  font-family: sans-serif;
+  font-family: "Chiron Hei HK", sans-serif;
   padding: 20px;
   margin: 0;
-  background: var(--bg, #fff);
-  color: var(--fg, #000);
+  background: var(--bg);
+  color: var(--fg);
 }
+
 .settings-container {
   max-width: 360px;
-  margin: 0 auto;
-}
-.settings-container h2 {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   text-align: center;
 }
+
+h2 {
+  margin-bottom: 50px;
+  font-size: 34px;
+}
+
 .setting-item {
-  margin: 16px 0;
+  margin: 34px 0;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.setting-item label {
-  flex: 1;
-}
-.setting-item select,
-.setting-item .toggle-btn {
-  /* 跟側欄按鈕同樣的圓角與邊框 */
-  padding: 4px 10px;
-  border: 1px solid #aaa;
-  border-radius: 999px;
-  background: transparent;
-  cursor: pointer;
-  text-align: center;
-  text-align-last: center;
-}
-.toggle-btn {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
 }
-.toggle-btn img {
+
+.setting-item label {
+  flex: 1;
+}
+
+.tabs {
+  display: flex;
+  position: relative;
+  padding: 8px;
+  gap: 12px;
+  border-radius: 99px;
+  background-color: var(--bg);
+  box-shadow: 0 0 1px rgba(24, 94, 224, 0.15),
+    0 6px 12px rgba(24, 94, 224, 0.15);
+}
+
+body.dark .tabs {
+  background-color: #303030;
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.5), 0 6px 12px rgba(0, 0, 0, 0.5);
+}
+
+.tabs * {
+  z-index: 2;
+}
+
+.tabs input[type="radio"] {
+  display: none;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-shrink: 0;
+  width: 90px;
+  height: 30px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--fg);
+}
+
+.tab-icon {
   width: 16px;
   height: 16px;
+  filter: none;
+}
+body.dark .tab-icon {
+  filter: brightness(0) invert(1);
+}
+
+body.light input[type="radio"]:checked + label {
+  color: #0077ff;
+}
+body.dark input[type="radio"]:checked + label {
+  color: #7ab8ff;
+}
+
+body.light input[type="radio"]:checked + label .tab-icon {
+  filter: invert(31%) sepia(58%) saturate(4026%) hue-rotate(211deg)
+    brightness(93%) contrast(101%);
+}
+body.dark input[type="radio"]:checked + label .tab-icon {
+  filter: invert(64%) sepia(56%) saturate(3958%) hue-rotate(192deg)
+    brightness(96%) contrast(98%);
+}
+
+.glider {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 90px;
+  height: 30px;
+  border-radius: 99px;
+  background-color: #e6eef9;
+  transition: transform 0.25s ease-out;
+  z-index: 1;
+}
+body.dark .glider {
+  background-color: #454545;
+}
+
+#radio-light:checked ~ .glider,
+#lang-zh:checked ~ .glider {
+  transform: translateX(0);
+}
+#radio-system:checked ~ .glider,
+#lang-en:checked ~ .glider {
+  transform: translateX(calc(100% + 12px));
+}
+#radio-dark:checked ~ .glider,
+#lang-ja:checked ~ .glider {
+  transform: translateX(calc(2 * (100% + 12px)));
+}
+
+@media (max-width: 700px) {
+  .tabs {
+    transform: scale(0.8);
+  }
 }

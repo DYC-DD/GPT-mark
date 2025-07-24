@@ -38,8 +38,22 @@ function getSavedMood(callback) {
 // 套用主題樣式到 body
 function applyMood(mood) {
   document.body.classList.remove("light", "dark");
-  document.body.classList.add(mood);
+  if (mood === "system") {
+    // 依系統深淺設定
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    const actual = mq.matches ? "dark" : "light";
+    document.body.classList.add(actual);
+    // 動態監聽系統切換
+    mq.addEventListener("change", (e) => {
+      document.body.classList.toggle("dark", e.matches);
+      document.body.classList.toggle("light", !e.matches);
+    });
+  } else {
+    // 明確選 dark 或 light
+    document.body.classList.add(mood);
+  }
 }
+
 // 切換主題並儲存
 function toggleMood() {
   getSavedMood((current) => {

@@ -38,5 +38,21 @@
   "scrollToMessageTooltip": {
     "message": "クリックしてメッセージへ移動",
     "description": "ブックマークリストから元メッセージへ飛ぶツールチップ"
+  },
+  "settingsTitle": {
+    "message": "設定",
+    "description": "設定ページのタイトル"
+  },
+  "themeLight": {
+    "message": "ライト",
+    "description": "ライトモード"
+  },
+  "themeSystem": {
+    "message": "システム",
+    "description": "システムのテーマ"
+  },
+  "themeDark": {
+    "message": "ダーク",
+    "description": "ダークモード"
   }
 }

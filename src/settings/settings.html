@@ -7,22 +7,61 @@
   </head>
   <body>
     <div class="settings-container">
-      <h2>設定</h2>
+      <h2 data-i18n="settingsTitle"></h2>
 
       <div class="setting-item">
-        <label for="language-select">語系</label>
-        <select id="language-select">
-          <option value="zh" data-i18n="languageZh"></option>
-          <option value="en" data-i18n="languageEn"></option>
-          <option value="ja" data-i18n="languageJa"></option>
-        </select>
+        <div class="lang-container">
+          <div class="tabs">
+            <input type="radio" id="lang-zh" name="lang" checked />
+            <label class="tab" for="lang-zh" data-i18n="languageZh"></label>
+
+            <input type="radio" id="lang-en" name="lang" />
+            <label class="tab" for="lang-en" data-i18n="languageEn"></label>
+
+            <input type="radio" id="lang-ja" name="lang" />
+            <label class="tab" for="lang-ja" data-i18n="languageJa"></label>
+
+            <span class="glider"></span>
+          </div>
+        </div>
       </div>
 
       <div class="setting-item">
-        <label>主題</label>
-        <button id="mood-toggle" class="toggle-btn">
-          <img id="mood-icon" alt="切換主題" />
-        </button>
+        <div class="mood-container">
+          <div class="tabs">
+            <input type="radio" id="radio-light" name="tabs" />
+            <label class="tab" for="radio-light">
+              <img
+                class="tab-icon"
+                src="../../assets/icons/sun.svg"
+                alt="亮色"
+              />
+              <span data-i18n="themeLight"></span>
+            </label>
+
+            <input type="radio" id="radio-system" name="tabs" checked />
+            <label class="tab" for="radio-system">
+              <img
+                class="tab-icon"
+                src="../../assets/icons/system.svg"
+                alt="系統"
+              />
+              <span data-i18n="themeSystem"></span>
+            </label>
+
+            <input type="radio" id="radio-dark" name="tabs" />
+            <label class="tab" for="radio-dark">
+              <img
+                class="tab-icon"
+                src="../../assets/icons/moon.svg"
+                alt="暗色"
+              />
+              <span data-i18n="themeDark"></span>
+            </label>
+
+            <span class="glider"></span>
+          </div>
+        </div>
       </div>
     </div>
 
