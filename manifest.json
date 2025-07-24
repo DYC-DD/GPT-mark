@@ -1,9 +1,13 @@
 {
   "manifest_version": 3,
   "default_locale": "zh_TW",
-  "version": "2.2.2",
+  "version": "2.3.0",
   "name": "__MSG_name__",
   "description": "__MSG_description__",
+  "options_ui": {
+    "page": "src/settings/settings.html",
+    "open_in_tab": true
+  },
   "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel"],
   "action": {
     "default_icon": "assets/logo/GPT-pin16.png",

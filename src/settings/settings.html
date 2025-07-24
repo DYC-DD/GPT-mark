@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>GPT-mark 設定</title>
+    <link rel="stylesheet" href="settings.css" />
+  </head>
+  <body>
+    <div class="settings-container">
+      <h2>設定</h2>
+
+      <div class="setting-item">
+        <label for="language-select">語系</label>
+        <select id="language-select">
+          <option value="zh" data-i18n="languageZh"></option>
+          <option value="en" data-i18n="languageEn"></option>
+          <option value="ja" data-i18n="languageJa"></option>
+        </select>
+      </div>
+
+      <div class="setting-item">
+        <label>主題</label>
+        <button id="mood-toggle" class="toggle-btn">
+          <img id="mood-icon" alt="切換主題" />
+        </button>
+      </div>
+    </div>
+
+    <script src="settings.js"></script>
+  </body>
+</html>

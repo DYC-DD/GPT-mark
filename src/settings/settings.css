@@ -1,0 +1,43 @@
+body {
+  font-family: sans-serif;
+  padding: 20px;
+  margin: 0;
+  background: var(--bg, #fff);
+  color: var(--fg, #000);
+}
+.settings-container {
+  max-width: 360px;
+  margin: 0 auto;
+}
+.settings-container h2 {
+  text-align: center;
+}
+.setting-item {
+  margin: 16px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.setting-item label {
+  flex: 1;
+}
+.setting-item select,
+.setting-item .toggle-btn {
+  /* 跟側欄按鈕同樣的圓角與邊框 */
+  padding: 4px 10px;
+  border: 1px solid #aaa;
+  border-radius: 999px;
+  background: transparent;
+  cursor: pointer;
+  text-align: center;
+  text-align-last: center;
+}
+.toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.toggle-btn img {
+  width: 16px;
+  height: 16px;
+}

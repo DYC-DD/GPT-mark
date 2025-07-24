@@ -48,22 +48,6 @@ function applyMessages() {
   });
 }
 
-async function initLanguage() {
-  // 初始化語言選單
-  const sel = document.getElementById("language-select");
-  const saved = localStorage.getItem(LANGUAGE_KEY) || "zh";
-  sel.value = saved;
-  await loadMessages(saved);
-  applyMessages();
-  sel.addEventListener("change", async () => {
-    const lang = sel.value;
-    localStorage.setItem(LANGUAGE_KEY, lang);
-    await loadMessages(lang);
-    applyMessages();
-    loadSidebarBookmarks();
-  });
-}
-
 // ----- 讀取書籤與 Hashtag  -----
 function fetchBookmarksWithTags(cb) {
   chrome.storage.local.get([CURRENT_CHAT_KEY], (res) => {
@@ -296,9 +280,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 // ----- 主題切換功能 -----
-// 讀取儲存的主題
-function getSavedMood() {
-  return localStorage.getItem(MOOD_KEY) || "dark";
+// 讀取儲存的主題（從 chrome.storage.local）
+function getSavedMood(callback) {
+  chrome.storage.local.get([MOOD_KEY], (res) => {
+    callback(res[MOOD_KEY] || "dark");
+  });
 }
 
 // 套用主題
@@ -312,19 +298,30 @@ function applyMood(mood) {
 
 // 切換主題並儲存
 function toggleMood() {
-  const next = getSavedMood() === "light" ? "dark" : "light";
-  localStorage.setItem(MOOD_KEY, next);
-  applyMood(next);
+  getSavedMood((current) => {
+    const next = current === "light" ? "dark" : "light";
+    chrome.storage.local.set({ [MOOD_KEY]: next });
+  });
 }
 
 // ----- 初始化 -----
 document.addEventListener("DOMContentLoaded", async () => {
-  await initLanguage();
+  // 1. 先載入翻譯文字（從設定頁儲存的語系）
+  const savedLang = localStorage.getItem(LANGUAGE_KEY) || "zh";
+  await loadMessages(savedLang);
+  applyMessages();
+  initCurrentKeyAndLoad();
+  setInterval(initCurrentKeyAndLoad, 1000);
+
+  // 當拿到 CURRENT_CHAT_KEY 之後才載入
   loadSidebarBookmarks();
 
-  applyMood(getSavedMood());
-  document.getElementById("mood-toggle").addEventListener("click", toggleMood);
+  // 2. 綁定設定按鈕
+  document
+    .getElementById("settings-button")
+    .addEventListener("click", () => chrome.runtime.openOptionsPage());
 
+  // 3. 綁定排序
   const sortSelect = document.getElementById("sort-order");
   sortSelect.value = getSavedSort();
   sortSelect.addEventListener("change", () => {
@@ -332,18 +329,41 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadSidebarBookmarks();
   });
 
-  initCurrentKeyAndLoad();
-  setInterval(initCurrentKeyAndLoad, 1000);
+  // ----- 主題切換功能，改用 chrome.storage.local -----
+  // 1. 讀取並套用儲存的主題
+  chrome.storage.local.get(MOOD_KEY, (res) => {
+    const mood = res[MOOD_KEY] || "dark";
+    applyMood(mood);
+  });
 
-  document.getElementById("scroll-top-btn").addEventListener("click", () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.sendMessage(tabs[0].id, { type: "scroll-to-top" });
+  // 2. 點擊按鈕切換主題並儲存
+  document.getElementById("mood-toggle").addEventListener("click", () => {
+    chrome.storage.local.get(MOOD_KEY, (res) => {
+      const current = res[MOOD_KEY] || "dark";
+      const next = current === "light" ? "dark" : "light";
+      chrome.storage.local.set({ [MOOD_KEY]: next }, () => {
+        applyMood(next);
+      });
     });
   });
-  document.getElementById("scroll-bottom-btn").addEventListener("click", () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.sendMessage(tabs[0].id, { type: "scroll-to-bottom" });
-    });
+});
+
+// 3. 監聽 storage 變動：若其他分頁（如設定頁）改了主題，就自動更新
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes[MOOD_KEY]) {
+    applyMood(changes[MOOD_KEY].newValue);
+  }
+});
+
+// 5. 捲動按鈕
+document.getElementById("scroll-top-btn").addEventListener("click", () => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.sendMessage(tabs[0].id, { type: "scroll-to-top" });
+  });
+});
+document.getElementById("scroll-bottom-btn").addEventListener("click", () => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.sendMessage(tabs[0].id, { type: "scroll-to-bottom" });
   });
 });
 
@@ -352,5 +372,19 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && CURRENT_CHAT_KEY in changes) {
     renderHashtagList();
     loadSidebarBookmarks();
+  }
+});
+
+// —— 初始化側邊欄時讀語言並套用 ——
+chrome.storage.local.get(LANGUAGE_KEY, (res) => {
+  const lang = res[LANGUAGE_KEY] || "zh";
+  loadMessages(lang).then(applyMessages);
+});
+
+// —— 監聽語言變動 ——
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes[LANGUAGE_KEY]) {
+    const newLang = changes[LANGUAGE_KEY].newValue;
+    loadMessages(newLang).then(applyMessages);
   }
 });
