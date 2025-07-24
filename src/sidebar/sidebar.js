@@ -291,9 +291,6 @@ function getSavedMood(callback) {
 function applyMood(mood) {
   document.body.classList.remove("light", "dark");
   document.body.classList.add(mood);
-  const img = document.getElementById("mood-icon");
-  const file = mood === "light" ? MOON_ICON : SUN_ICON;
-  img.src = chrome.runtime.getURL(file);
 }
 
 // 切換主題並儲存
@@ -334,17 +331,6 @@ document.addEventListener("DOMContentLoaded", async () => {
   chrome.storage.local.get(MOOD_KEY, (res) => {
     const mood = res[MOOD_KEY] || "dark";
     applyMood(mood);
-  });
-
-  // 2. 點擊按鈕切換主題並儲存
-  document.getElementById("mood-toggle").addEventListener("click", () => {
-    chrome.storage.local.get(MOOD_KEY, (res) => {
-      const current = res[MOOD_KEY] || "dark";
-      const next = current === "light" ? "dark" : "light";
-      chrome.storage.local.set({ [MOOD_KEY]: next }, () => {
-        applyMood(next);
-      });
-    });
   });
 });
 
