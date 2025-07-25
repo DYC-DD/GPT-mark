@@ -155,8 +155,8 @@ document.addEventListener("keydown", handleKeyDown);
 // 動態載入的掃描間隔（毫秒）
 const SCAN_INTERVAL = 2000;
 
-const EMPTY_ICON = "assets/icons/bookmark-star.svg";
-const FILL_ICON = "assets/icons/bookmark-star-fill.svg";
+const EMPTY_ICON = "assets/icons/bookmarks.svg";
+const FILL_ICON = "assets/icons/bookmarks-fill.svg";
 
 /**
  * 取得目前聊天室 URL 路徑作為書籤儲存 key
@@ -219,32 +219,95 @@ function getIconFilter() {
     : "none";
 }
 
+// 建立書籤按鈕
+function createBookmarkButton(msg, role) {
+  const id = msg.dataset.messageId;
+  if (
+    !id ||
+    document.querySelector(`.chatgpt-bookmark-btn[data-bookmark-id="${id}"]`)
+  )
+    return null;
+
+  const btn = document.createElement("button");
+  btn.className = "chatgpt-bookmark-btn";
+  btn.title = "書籤";
+  btn.setAttribute("data-bookmark-id", id);
+  Object.assign(btn.style, {
+    width: "32px",
+    height: "32px",
+    background: "transparent",
+    border: "none",
+    borderRadius: "8px",
+    padding: "0",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    transition: "background-color 0.2s",
+  });
+
+  const icon = document.createElement("img");
+  Object.assign(icon.style, {
+    width: "16px",
+    height: "16px",
+    pointerEvents: "none",
+    filter: getIconFilter(),
+  });
+  btn.appendChild(icon);
+
+  fetchBookmarks((list) => {
+    const file = isBookmarked(id, list) ? FILL_ICON : EMPTY_ICON;
+    icon.src = chrome.runtime.getURL(file);
+  });
+
+  btn.addEventListener("click", () => {
+    const content = msg.innerText.trim();
+    toggleBookmark(id, content, (updated) => {
+      const file = isBookmarked(id, updated) ? FILL_ICON : EMPTY_ICON;
+      icon.src = chrome.runtime.getURL(file);
+    });
+  });
+  btn.addEventListener(
+    "mouseenter",
+    () => (btn.style.backgroundColor = getHoverBgColor())
+  );
+  btn.addEventListener(
+    "mouseleave",
+    () => (btn.style.backgroundColor = "transparent")
+  );
+
+  return btn;
+}
+
 /**
  * 掃描所有使用者訊息 若尚未有書籤按鈕則注入
  */
 function setupBookmarkButtons() {
   const msgs = document.querySelectorAll(
-    '[data-message-author-role="user"][data-message-id]'
+    '[data-message-author-role="user"][data-message-id], [data-message-author-role="assistant"][data-message-id]'
   );
 
   msgs.forEach((msg) => {
     const id = msg.dataset.messageId;
-
-    // 已有按鈕就略過
-    if (msg.querySelector(".chatgpt-bookmark-btn")) return;
+    // 如果已經插過這個 messageId，就跳過
+    if (
+      document.querySelector(`.chatgpt-bookmark-btn[data-bookmark-id="${id}"]`)
+    ) {
+      return;
+    }
 
     // 建立按鈕
     const btn = document.createElement("button");
     btn.className = "chatgpt-bookmark-btn";
     btn.title = "書籤";
+    btn.setAttribute("data-bookmark-id", id);
     Object.assign(btn.style, {
       width: "32px",
       height: "32px",
-      backgroundColor: "transparent",
+      background: "transparent",
       border: "none",
       borderRadius: "8px",
       padding: "0",
-      marginLeft: "8px",
       display: "inline-flex",
       alignItems: "center",
       justifyContent: "center",
@@ -252,48 +315,92 @@ function setupBookmarkButtons() {
       transition: "background-color 0.2s",
     });
 
-    // 建立 icon 圖示
     const icon = document.createElement("img");
     Object.assign(icon.style, {
-      width: "20px",
-      height: "20px",
+      width: "16px",
+      height: "16px",
       pointerEvents: "none",
       filter: getIconFilter(),
     });
     btn.appendChild(icon);
 
-    // 載入書籤狀態
+    // 初始圖示
     fetchBookmarks((list) => {
       const file = isBookmarked(id, list) ? FILL_ICON : EMPTY_ICON;
       icon.src = chrome.runtime.getURL(file);
-      icon.style.filter = getIconFilter();
     });
 
-    // 點擊時切換書籤狀態與 icon 圖示
+    // 切換書籤
     btn.addEventListener("click", () => {
       const content = msg.innerText.trim();
       toggleBookmark(id, content, (updated) => {
         const file = isBookmarked(id, updated) ? FILL_ICON : EMPTY_ICON;
         icon.src = chrome.runtime.getURL(file);
-        icon.style.filter = getIconFilter();
       });
     });
 
     // hover 效果
-    btn.addEventListener("mouseenter", () => {
-      btn.style.backgroundColor = getHoverBgColor();
-    });
-    btn.addEventListener("mouseleave", () => {
-      btn.style.backgroundColor = "transparent";
-    });
+    btn.addEventListener(
+      "mouseenter",
+      () => (btn.style.backgroundColor = getHoverBgColor())
+    );
+    btn.addEventListener(
+      "mouseleave",
+      () => (btn.style.backgroundColor = "transparent")
+    );
 
-    const header = msg.querySelector("div > div.flex.justify-between");
-    if (header) header.appendChild(btn);
-    else msg.appendChild(btn);
+    const role = msg.dataset.messageAuthorRole;
+    const turn = msg.closest("article");
+    const copyBtn = turn?.querySelector(
+      '[data-testid="copy-turn-action-button"]'
+    );
+
+    if (role === "user") {
+      if (copyBtn && copyBtn.parentNode) {
+        copyBtn.parentNode.insertBefore(btn, copyBtn);
+      } else {
+        const fallback = msg.querySelector("div > div.flex.justify-between");
+        if (fallback) fallback.appendChild(btn);
+        else msg.appendChild(btn);
+      }
+    } else {
+      if (copyBtn && copyBtn.parentNode) {
+        copyBtn.parentNode.insertBefore(btn, copyBtn);
+      }
+      return;
+    }
   });
 }
 
-// 定期掃描新訊息以注入書籤按鈕
+// 啟動 MutationObserver 監聽新的 GPT 回覆
+function observeAssistantTurns() {
+  const chatContainer = document.querySelector("main div[class*='overflow-y']");
+  if (!chatContainer) return;
+
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      for (const node of m.addedNodes) {
+        if (!(node instanceof HTMLElement)) continue;
+        const copyBtn = node.querySelector(
+          '[data-testid="copy-turn-action-button"]'
+        );
+        const msg = node.querySelector(
+          '[data-message-author-role="assistant"][data-message-id]'
+        );
+        if (copyBtn && msg) {
+          const btn = createBookmarkButton(msg, "assistant");
+          if (btn) copyBtn.parentNode.insertBefore(btn, copyBtn);
+        }
+      }
+    }
+  });
+
+  observer.observe(chatContainer, { childList: true, subtree: true });
+}
+
+// 初始化：先補上 user 書籤、再啟動 GPT 觀察器、定期補漏
+setupBookmarkButtons();
+observeAssistantTurns();
 setInterval(setupBookmarkButtons, SCAN_INTERVAL);
 
 // 滾動到特定訊息並高亮提示
@@ -316,7 +423,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "getChatOrder") {
     const elems = document.querySelectorAll(
-      '[data-message-author-role="user"][data-message-id]'
+      '[data-message-author-role="user"][data-message-id], [data-message-author-role="assistant"][data-message-id]'
     );
     const order = Array.from(elems).map((el) => el.dataset.messageId);
     sendResponse({ order });

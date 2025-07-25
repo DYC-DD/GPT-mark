@@ -31,8 +31,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "assets/icons/bookmark-star.svg",
-        "assets/icons/bookmark-star-fill.svg"
+        "assets/icons/bookmarks.svg",
+        "assets/icons/bookmarks-fill.svg"
       ],
       "matches": ["https://chat.openai.com/*", "https://chatgpt.com/*"]
     }
