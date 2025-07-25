@@ -54,5 +54,9 @@
   "themeDark": {
     "message": "暗色",
     "description": "暗色模式ㄋ"
+  },
+  "downloadBookmarks": {
+    "message": "匯出書籤",
+    "description": "設定頁面上的匯出按鈕文字"
   }
 }

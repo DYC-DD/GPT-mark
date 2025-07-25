@@ -54,5 +54,9 @@
   "themeDark": {
     "message": "Dark",
     "description": "Dark theme label"
+  },
+  "downloadBookmarks": {
+    "message": "Export Bookmarks",
+    "description": "Button text for exporting bookmarks in the settings page"
   }
 }

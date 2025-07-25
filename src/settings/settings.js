@@ -81,5 +81,68 @@ async function initSettings() {
     });
 }
 
+// 綁定匯出按鈕
+document
+  .getElementById("download-btn")
+  .addEventListener("click", downloadBookmarks);
+
+async function downloadBookmarks() {
+  chrome.storage.local.get(null, (res) => {
+    const singleChats = [];
+    const sharedChats = [];
+
+    for (const [pathname, messages] of Object.entries(res)) {
+      if (!Array.isArray(messages) || messages.length === 0) continue;
+
+      const parts = pathname.split("/");
+      const url = pathname.startsWith("/c/")
+        ? `https://chatgpt.com${pathname}`
+        : `https://chat.openai.com${pathname}`;
+
+      const formattedMessages = messages.map((msg) => ({
+        ...msg,
+        role:
+          msg.role === "assistant"
+            ? "ChatGPT"
+            : msg.role === "user"
+            ? "User"
+            : msg.role || "Unknown",
+      }));
+
+      const item = {
+        url,
+        chatId: parts[2],
+        bookmarks: formattedMessages,
+      };
+
+      if (pathname.startsWith("/c/")) {
+        singleChats.push(item);
+      } else if (pathname.startsWith("/g/")) {
+        item.groupId = parts[2];
+        item.chatId = parts[4];
+        sharedChats.push(item);
+      }
+    }
+
+    const payload = {
+      downloadInfo: {
+        downloadedAt: new Date().toISOString(),
+        totalChats: singleChats.length + sharedChats.length,
+      },
+      singleChats,
+      sharedChats,
+    };
+
+    const blob = new Blob([JSON.stringify(payload, null, 4)], {
+      type: "application/json",
+    });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "chatgpt_bookmarks_pretty.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  });
+}
+
 // DOM 載入完成後執行初始化
 document.addEventListener("DOMContentLoaded", initSettings);

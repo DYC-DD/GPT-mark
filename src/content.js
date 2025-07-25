@@ -191,11 +191,11 @@ function isBookmarked(id, list) {
 /**
  * 切換書籤狀態：加入或移除，並在完成後執行 callback
  */
-function toggleBookmark(id, content, cb) {
+function toggleBookmark(id, content, role, cb) {
   fetchBookmarks((list) => {
     const updated = isBookmarked(id, list)
       ? list.filter((item) => item.id !== id)
-      : [...list, { id, content }];
+      : [...list, { id, content, role }];
     saveBookmarks(updated);
     if (cb) cb(updated);
   });
@@ -263,7 +263,8 @@ function createBookmarkButton(msg) {
 
   btn.addEventListener("click", () => {
     const content = msg.innerText.trim();
-    toggleBookmark(id, content, (updated) => {
+    const role = msg.dataset.messageAuthorRole || "unknown";
+    toggleBookmark(id, content, role, (updated) => {
       const file = isBookmarked(id, updated) ? FILL_ICON : EMPTY_ICON;
       icon.src = chrome.runtime.getURL(file);
     });

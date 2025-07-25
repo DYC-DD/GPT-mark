@@ -137,3 +137,31 @@ body.dark .glider {
     transform: scale(0.8);
   }
 }
+
+.download-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.2s;
+}
+.btn-icon {
+  width: 18px;
+  height: 18px;
+  filter: brightness(0) invert(1);
+}
+body.light .download-btn {
+  background-color: #0077ff;
+  color: #fff;
+}
+body.dark .download-btn {
+  background-color: #4a90e2;
+  color: #fff;
+}
+.download-btn:hover {
+  opacity: 0.9;
+}
