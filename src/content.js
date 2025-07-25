@@ -216,17 +216,18 @@ function getHoverBgColor() {
 function getIconFilter() {
   return document.documentElement.classList.contains("dark")
     ? "brightness(0) invert(1)"
-    : "none";
+    : "brightness(0)";
 }
 
 // 建立書籤按鈕
-function createBookmarkButton(msg, role) {
+function createBookmarkButton(msg) {
   const id = msg.dataset.messageId;
   if (
     !id ||
     document.querySelector(`.chatgpt-bookmark-btn[data-bookmark-id="${id}"]`)
-  )
+  ) {
     return null;
+  }
 
   const btn = document.createElement("button");
   btn.className = "chatgpt-bookmark-btn";
@@ -279,129 +280,104 @@ function createBookmarkButton(msg, role) {
   return btn;
 }
 
-/**
- * 掃描所有使用者訊息 若尚未有書籤按鈕則注入
- */
-function setupBookmarkButtons() {
-  const msgs = document.querySelectorAll(
-    '[data-message-author-role="user"][data-message-id], [data-message-author-role="assistant"][data-message-id]'
+// 為 turn 裡的訊息插入書籤按鈕
+function tryInjectButton(msg) {
+  const btn = createBookmarkButton(msg);
+  if (!btn) return;
+
+  const turn = msg.closest("article");
+  const copyBtn = turn?.querySelector(
+    '[data-testid="copy-turn-action-button"]'
   );
-
-  msgs.forEach((msg) => {
-    const id = msg.dataset.messageId;
-    // 如果已經插過這個 messageId，就跳過
-    if (
-      document.querySelector(`.chatgpt-bookmark-btn[data-bookmark-id="${id}"]`)
-    ) {
-      return;
-    }
-
-    // 建立按鈕
-    const btn = document.createElement("button");
-    btn.className = "chatgpt-bookmark-btn";
-    btn.title = "書籤";
-    btn.setAttribute("data-bookmark-id", id);
-    Object.assign(btn.style, {
-      width: "32px",
-      height: "32px",
-      background: "transparent",
-      border: "none",
-      borderRadius: "8px",
-      padding: "0",
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      transition: "background-color 0.2s",
-    });
-
-    const icon = document.createElement("img");
-    Object.assign(icon.style, {
-      width: "16px",
-      height: "16px",
-      pointerEvents: "none",
-      filter: getIconFilter(),
-    });
-    btn.appendChild(icon);
-
-    // 初始圖示
-    fetchBookmarks((list) => {
-      const file = isBookmarked(id, list) ? FILL_ICON : EMPTY_ICON;
-      icon.src = chrome.runtime.getURL(file);
-    });
-
-    // 切換書籤
-    btn.addEventListener("click", () => {
-      const content = msg.innerText.trim();
-      toggleBookmark(id, content, (updated) => {
-        const file = isBookmarked(id, updated) ? FILL_ICON : EMPTY_ICON;
-        icon.src = chrome.runtime.getURL(file);
-      });
-    });
-
-    // hover 效果
-    btn.addEventListener(
-      "mouseenter",
-      () => (btn.style.backgroundColor = getHoverBgColor())
-    );
-    btn.addEventListener(
-      "mouseleave",
-      () => (btn.style.backgroundColor = "transparent")
-    );
-
-    const role = msg.dataset.messageAuthorRole;
-    const turn = msg.closest("article");
-    const copyBtn = turn?.querySelector(
-      '[data-testid="copy-turn-action-button"]'
-    );
-
-    if (role === "user") {
-      if (copyBtn && copyBtn.parentNode) {
-        copyBtn.parentNode.insertBefore(btn, copyBtn);
-      } else {
-        const fallback = msg.querySelector("div > div.flex.justify-between");
-        if (fallback) fallback.appendChild(btn);
-        else msg.appendChild(btn);
-      }
-    } else {
-      if (copyBtn && copyBtn.parentNode) {
-        copyBtn.parentNode.insertBefore(btn, copyBtn);
-      }
-      return;
-    }
-  });
+  if (copyBtn && copyBtn.parentNode) {
+    copyBtn.parentNode.insertBefore(btn, copyBtn);
+  }
 }
 
-// 啟動 MutationObserver 監聽新的 GPT 回覆
-function observeAssistantTurns() {
-  const chatContainer = document.querySelector("main div[class*='overflow-y']");
-  if (!chatContainer) return;
+// 一次性為已存在的 messages 注入書籤按鈕
+function injectExistingBookmarks() {
+  document
+    .querySelectorAll("[data-message-author-role][data-message-id]")
+    .forEach((msg) => tryInjectButton(msg));
+}
 
+// 用 MutationObserver 監聽所有新加進來的「turn」
+function observeAllTurns() {
   const observer = new MutationObserver((mutations) => {
     for (const m of mutations) {
       for (const node of m.addedNodes) {
         if (!(node instanceof HTMLElement)) continue;
-        const copyBtn = node.querySelector(
-          '[data-testid="copy-turn-action-button"]'
-        );
-        const msg = node.querySelector(
-          '[data-message-author-role="assistant"][data-message-id]'
-        );
-        if (copyBtn && msg) {
-          const btn = createBookmarkButton(msg, "assistant");
-          if (btn) copyBtn.parentNode.insertBefore(btn, copyBtn);
+
+        if (node.matches('[data-testid="copy-turn-action-button"]')) {
+          const turn = node.closest("article");
+          const msg = turn?.querySelector("[data-message-id]");
+          if (msg) tryInjectButton(msg);
+          continue;
+        }
+
+        const copyBtn = node.querySelector
+          ? node.querySelector('[data-testid="copy-turn-action-button"]')
+          : null;
+        if (copyBtn) {
+          const turn = copyBtn.closest("article");
+          const msg = turn?.querySelector("[data-message-id]");
+          if (msg) tryInjectButton(msg);
+          continue;
+        }
+
+        const msgNode = node.matches("[data-message-id]")
+          ? node
+          : node.querySelector("[data-message-id]");
+        if (msgNode) {
+          const turn = msgNode.closest("article");
+          const btnArea = turn?.querySelector(
+            '[data-testid="copy-turn-action-button"]'
+          );
+          if (btnArea) tryInjectButton(msgNode);
         }
       }
     }
   });
 
-  observer.observe(chatContainer, { childList: true, subtree: true });
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
 }
 
-// 初始化：先補上 user 書籤、再啟動 GPT 觀察器、定期補漏
-setupBookmarkButtons();
-observeAssistantTurns();
-setInterval(setupBookmarkButtons, SCAN_INTERVAL);
+/**
+ * 主題切換後 更新所有書籤 icon 濾鏡
+ */
+function updateBookmarkIcons() {
+  const filter = getIconFilter();
+  document.querySelectorAll(".chatgpt-bookmark-btn img").forEach((icon) => {
+    icon.style.filter = filter;
+  });
+}
+
+/**
+ * 監聽 <html> class 變化（dark / light 切換）
+ */
+function observeMoodChange() {
+  const observer = new MutationObserver(() => {
+    updateBookmarkIcons();
+  });
+
+  observer.observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ["class"],
+  });
+}
+
+// 啟動時等最外層 DOM 構建完成
+window.addEventListener("load", () => {
+  injectExistingBookmarks();
+  observeAllTurns();
+  observeMoodChange();
+
+  // 少數情況補漏
+  setTimeout(injectExistingBookmarks, SCAN_INTERVAL);
+});
 
 // 滾動到特定訊息並高亮提示
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
