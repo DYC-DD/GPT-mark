@@ -14,46 +14,55 @@ const HASHTAG_ICON = "assets/icons/hashtag.svg";
 // 語系對應表
 const LOCALE_MAP = { zh: "zh_TW", en: "en", ja: "ja" };
 
-// 儲存翻譯文字、當前聊天室路徑及選取的標籤集合
+// 儲存讀取到的翻譯文字、目前聊天室 key、以及已選的 Hashtag
 let messages = {};
 let CURRENT_CHAT_KEY = null;
 let selectedTags = new Set();
 
-// ChatGPT 主頁就緒旗標
+// ----- 路徑規格化 -----
+// 把各種可能的 URL 轉成統一的格式
+const normalizePath = (p) => {
+  // 去掉尾斜線
+  p = p.replace(/\/$/, "");
+  // 如果是群組路徑 /g/.../c/<id>，只保留 /c/<id>
+  const m = p.match(/^\/g\/[^/]+\/c\/([^/]+)$/);
+  if (m) return `/c/${m[1]}`;
+  return p;
+};
+
+// ----- 等待主頁載入完成並初始化 -----
 let chatReady = false;
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "chatgpt-ready") {
     chatReady = true;
-    loadSidebarBookmarks();
+    initCurrentKeyAndLoad();
   }
 });
 
 // ----- 主題切換功能 -----
-// 從 storage 讀取並回傳當前主題
+// 讀取儲存的主題 預設 dark
 function getSavedMood(callback) {
   chrome.storage.local.get([MOOD_KEY], (res) => {
     callback(res[MOOD_KEY] || "dark");
   });
 }
-// 套用主題樣式到 body
+// 根據 mood 參數套用頁面主題
 function applyMood(mood) {
   document.body.classList.remove("light", "dark");
   if (mood === "system") {
-    // 依系統深淺設定
+    // 依系統動態監聽切換
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     const actual = mq.matches ? "dark" : "light";
     document.body.classList.add(actual);
-    // 動態監聽系統切換
     mq.addEventListener("change", (e) => {
       document.body.classList.toggle("dark", e.matches);
       document.body.classList.toggle("light", !e.matches);
     });
   } else {
-    // 明確選 dark 或 light
+    // 明確指定 light / dark
     document.body.classList.add(mood);
   }
 }
-
 // 切換主題並儲存
 function toggleMood() {
   getSavedMood((current) => {
@@ -61,7 +70,7 @@ function toggleMood() {
     chrome.storage.local.set({ [MOOD_KEY]: next });
   });
 }
-// 監聽主題變動，立即套用新主題
+// 監聽主題變動並立即套用新主題
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes[MOOD_KEY]) {
     applyMood(changes[MOOD_KEY].newValue);
@@ -96,10 +105,22 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 // ----- 標籤與書籤處理功能 -----
-// 從 storage 中讀取帶標籤的書籤列表
+// 從 chrome.storage 取得目前聊天室所有書籤
 function fetchBookmarksWithTags(cb) {
-  chrome.storage.local.get([CURRENT_CHAT_KEY], (res) => {
-    const list = res[CURRENT_CHAT_KEY] || [];
+  if (!CURRENT_CHAT_KEY) return cb([]);
+  const keyV2 = CURRENT_CHAT_KEY; // 無斜線 key
+  const keyV1 = `${CURRENT_CHAT_KEY}/`; // 有斜線 key
+
+  chrome.storage.local.get([keyV2, keyV1], (res) => {
+    let list = res[keyV2];
+    // 如果新 key 沒資料、但舊 key 有 → 自動搬家
+    if (!list && res[keyV1]) {
+      list = res[keyV1];
+      chrome.storage.local.set({ [keyV2]: list }, () =>
+        chrome.storage.local.remove(keyV1)
+      );
+    }
+    list = list || [];
     cb(list.map((item) => ({ ...item, hashtags: item.hashtags || [] })));
   });
 }
@@ -123,7 +144,6 @@ function onAddTag(bookmarkId) {
     });
   });
 }
-
 // 移除 Hashtag
 function onRemoveTag(bookmarkId, tag) {
   fetchBookmarksWithTags((list) => {
@@ -146,12 +166,10 @@ function renderHashtagList() {
   fetchBookmarksWithTags((list) => {
     const all = list.flatMap((item) => item.hashtags);
     const uniq = Array.from(new Set(all));
-
     // 清除不存在的已選標籤
     selectedTags.forEach((tag) => {
       if (!uniq.includes(tag)) selectedTags.delete(tag);
     });
-
     const container = document.getElementById("hashtag-container");
     container.innerHTML = "";
     uniq.forEach((tag) => {
@@ -183,7 +201,6 @@ function saveSort(sort) {
 // ----- 載入與排序書籤 -----
 function loadSidebarBookmarks() {
   if (!CURRENT_CHAT_KEY) return;
-
   fetchBookmarksWithTags((list) => {
     // 標籤篩選
     if (selectedTags.size) {
@@ -191,7 +208,7 @@ function loadSidebarBookmarks() {
         item.hashtags.some((tag) => selectedTags.has(tag))
       );
     }
-
+    // 根據加入順序或聊天順序排序
     const sortOrder = getSavedSort();
     if (sortOrder === "chat") {
       // 依聊天順序
@@ -233,14 +250,13 @@ function loadSidebarBookmarks() {
 function renderList(list) {
   const container = document.getElementById("bookmark-list");
   container.innerHTML = "";
-
   list.forEach((item) => {
+    // 超過 MAX_CONTENT_LENGTH 就截斷
     const fullText = item.content || "";
     const displayText =
       fullText.length > MAX_CONTENT_LENGTH
         ? fullText.slice(0, MAX_CONTENT_LENGTH) + "  . . ."
         : fullText;
-
     const div = document.createElement("div");
     div.className = "bookmark";
     div.textContent = displayText;
@@ -254,8 +270,7 @@ function renderList(list) {
         });
       });
     });
-
-    // 已有標籤顯示
+    // 如果有 tags 顯示在書籤下方
     if (item.hashtags.length) {
       const tagLine = document.createElement("div");
       tagLine.className = "tags-list";
@@ -275,7 +290,6 @@ function renderList(list) {
       });
       div.appendChild(tagLine);
     }
-
     // 新增標籤按鈕
     const btnTag = document.createElement("button");
     btnTag.className = "tag-btn";
@@ -290,21 +304,19 @@ function renderList(list) {
   });
 }
 
-// ----- 側邊欄初始化與監聽 -----
-// 設定當前聊天室 key 並載入
+// ----- 初始化 & 監聽路由變化 -----
 function initCurrentKeyAndLoad() {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (!tabs[0]?.url) return;
-    const pathname = new URL(tabs[0].url).pathname;
-    if (pathname !== CURRENT_CHAT_KEY) {
-      CURRENT_CHAT_KEY = pathname;
+    const path = normalizePath(new URL(tabs[0].url).pathname);
+    if (path && path !== CURRENT_CHAT_KEY) {
+      CURRENT_CHAT_KEY = path;
       renderHashtagList();
       loadSidebarBookmarks();
     }
   });
 }
-
-// 監聽 storage 變動
+// 當 storage 有改動（同聊天室 key）重新讀取列表
 chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && CURRENT_CHAT_KEY in changes) {
     renderHashtagList();
@@ -312,19 +324,31 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
-// DOMContentLoaded 初始化
+// 頁面載入後執行一次初始化，並每＿秒檢查路徑與空白狀態
 document.addEventListener("DOMContentLoaded", async () => {
   // 載入語系與套用文字
   const savedLang = localStorage.getItem(LANGUAGE_KEY) || "zh";
   await loadMessages(savedLang);
   applyMessages();
 
-  // 初始化 key 與側邊欄
+  // 初始化書籤
   initCurrentKeyAndLoad();
-  setInterval(initCurrentKeyAndLoad, 1000);
+  setInterval(() => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs[0]?.url) return;
+      const path = normalizePath(new URL(tabs[0].url).pathname);
+      const listEmpty =
+        !document.getElementById("bookmark-list").childElementCount;
+      if (path !== CURRENT_CHAT_KEY || listEmpty) {
+        CURRENT_CHAT_KEY = path;
+        renderHashtagList();
+        loadSidebarBookmarks();
+      }
+    });
+  }, 500);
   loadSidebarBookmarks();
 
-  // 綁定設定、排序與主題切換
+  // 綁定按鈕：設定頁、排序切換、主題讀取
   document
     .getElementById("settings-button")
     .addEventListener("click", () => chrome.runtime.openOptionsPage());
@@ -334,7 +358,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     saveSort(sortSelect.value);
     loadSidebarBookmarks();
   });
-  // 讀取並套用初始主題
   chrome.storage.local.get(MOOD_KEY, (res) =>
     applyMood(res[MOOD_KEY] || "dark")
   );
