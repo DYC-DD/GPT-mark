@@ -38,5 +38,25 @@
   "scrollToMessageTooltip": {
     "message": "點擊跳到該訊息",
     "description": "點擊書籤列表項目以跳回原始訊息"
+  },
+  "settingsTitle": {
+    "message": "設定",
+    "description": "設定頁面標題"
+  },
+  "themeLight": {
+    "message": "亮色",
+    "description": "亮色模式"
+  },
+  "themeSystem": {
+    "message": "系統",
+    "description": "系統模式"
+  },
+  "themeDark": {
+    "message": "暗色",
+    "description": "暗色模式ㄋ"
+  },
+  "downloadBookmarks": {
+    "message": "匯出書籤",
+    "description": "設定頁面上的匯出按鈕文字"
   }
 }
