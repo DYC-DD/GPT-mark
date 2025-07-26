@@ -38,7 +38,7 @@ body.dark {
 /* 書籤區塊 */
 .bookmark {
   position: relative;
-  padding: 8px;
+  padding: 8px 12px;
   margin-bottom: 5px;
   border-radius: 20px;
   white-space: pre-wrap;
@@ -103,7 +103,7 @@ body.dark #mood-toggle img {
 
 #sort-order {
   appearance: none;
-  padding: 4px 10px;
+  padding: 6px 10px;
   border: 1px solid #aaa;
   border-radius: 999px;
   background-color: transparent;
@@ -143,9 +143,10 @@ body.dark #sort-order:hover {
 .hashtag-item {
   border: 1px solid;
   border-radius: 999px;
-  padding: 4px 8px;
+  padding: 4px 10px;
   cursor: pointer;
   transition: background-color 0.2s, border-color 0.2s;
+  font-size: 12px;
 }
 
 body.light .hashtag-item {
@@ -314,13 +315,14 @@ body.dark #language-select:hover {
   background-color: #303030;
 }
 
-/* Scroll 按鈕 */
-.scroll-btn {
+/* Scroll 和 Setting 按鈕 */
+.scroll-btn,
+.setting-btn {
   background-color: transparent;
   border: 1px solid #aaa;
   border-radius: 50%;
-  width: 26px;
-  height: 26px;
+  width: 28px;
+  height: 28px;
   padding: 4px;
   cursor: pointer;
   display: flex;
@@ -329,17 +331,20 @@ body.dark #language-select:hover {
   transition: background-color 0.2s, border-color 0.2s;
 }
 
-.scroll-btn img {
-  width: 16px;
-  height: 16px;
+.scroll-btn img,
+.setting-btn img {
+  width: 18px;
+  height: 18px;
   pointer-events: none;
 }
 
-.scroll-btn:hover {
+.scroll-btn:hover,
+.setting-btn:hover {
   background-color: rgba(128, 128, 128, 0.2);
   border-color: #888;
 }
 
-body.dark .scroll-btn img {
+body.dark .scroll-btn img,
+body.dark .setting-btn img {
   filter: brightness(0) invert(1);
 }
