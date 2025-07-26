@@ -1,9 +1,13 @@
 {
   "manifest_version": 3,
   "default_locale": "zh_TW",
-  "version": "2.2.2",
+  "version": "3.0.0",
   "name": "__MSG_name__",
   "description": "__MSG_description__",
+  "options_ui": {
+    "page": "src/settings/settings.html",
+    "open_in_tab": true
+  },
   "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel"],
   "action": {
     "default_icon": "assets/logo/GPT-pin16.png",
@@ -27,8 +31,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "assets/icons/bookmark-star.svg",
-        "assets/icons/bookmark-star-fill.svg"
+        "assets/icons/bookmarks.svg",
+        "assets/icons/bookmarks-fill.svg"
       ],
       "matches": ["https://chat.openai.com/*", "https://chatgpt.com/*"]
     }
