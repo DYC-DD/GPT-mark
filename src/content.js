@@ -280,19 +280,26 @@ function tryInjectButton(msg) {
   const copyBtn = turn?.querySelector(
     '[data-testid="copy-turn-action-button"]'
   );
-  if (copyBtn?.parentNode) {
+  if (copyBtn && copyBtn.parentNode) {
     // 複製按鈕已存在，直接插在它左邊
     copyBtn.parentNode.insertBefore(btn, copyBtn);
   } else {
-    // 若還沒出現複製按鈕，就先附加到最前面
-    (turn?.firstElementChild || turn).appendChild(btn);
+    // 複製按鈕還沒出現，500ms 後再嘗試一次
+    setTimeout(() => {
+      const delayed = turn?.querySelector(
+        '[data-testid="copy-turn-action-button"]'
+      );
+      if (delayed && delayed.parentNode) {
+        delayed.parentNode.insertBefore(btn, delayed);
+      }
+    }, 500);
   }
 }
 
 // 為目前頁面所有已渲染的訊息注入書籤按鈕
 function injectExistingBookmarks() {
   document
-    .querySelectorAll("[data-message-author-role][data-message-id]")
+    .querySelectorAll("[data-message-id]")
     .forEach((msg) => tryInjectButton(msg));
 }
 
@@ -335,6 +342,8 @@ function observeAllTurns() {
   observer.observe(document.body, {
     childList: true,
     subtree: true,
+    attributes: true,
+    attributeFilter: ["data-message-id"],
   });
 }
 
