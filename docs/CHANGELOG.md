@@ -2,6 +2,41 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [3.0.0] - 2025-07-26
+
+### Added
+
+- 新增 `settings.html` 與 `settings.js` 設定頁，集中管理使用者偏好（主題、語言）
+  - 支援語言切換：中文、English、日本語（i18n）
+  - 支援主題選擇：亮色 / 暗色 / 系統自動（含自動監聽系統變更）
+    - 新增 system 主題圖示（`system.svg`）並整合至 UI
+  - 新增「下載書籤」按鈕，可匯出所有書籤為 JSON
+    - 書籤匯出格式包含：chatId、訊息內容、角色、hashtags 等欄位
+- 書籤功能支援標記 ChatGPT 回覆訊息
+- 書籤 icon 會根據主題自動切換顏色（light / dark / system）
+
+### Changed
+
+- 將主題與語言設定從 sidebar 拆出，改為獨立 `settings` 頁面處理
+- 書籤 UI 整體重新設計，樣式更貼近 ChatGPT 官方風格
+  - 包含圓角、間距、icon 調整、hover 效果優化
+- 重構 sidebar 的布局與按鈕配置，提升視覺一致性與操作易用性
+- 替換書籤圖示為新版設計，並調整在訊息區塊中的定位避免遮擋
+
+### Improved
+
+- 使用 `chrome.storage` 同步設定變更並即時套用至 UI
+- 調整初始化邏輯：可正確讀取並記憶上次主題與語言設定
+- 新增自動偵測系統主題，首次載入即自動套用偏好
+- 所有欄位縮排、換行、命名風格統一，增進可維護性與一致性
+- 補充程式區塊註解，強化邏輯可讀性與結構清晰度
+
+### Fixed
+
+- 修正語言切換後未正確寫入 `chrome.storage` 的問題
+- 修正書籤路徑錯誤綁定造成無法跳轉訊息的情況
+- 解決部份操作流程造成的 UI 錯位與邏輯異常
+
 ## [2.2.2] - 2025-07-19
 
 ### Added
