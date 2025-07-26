@@ -327,8 +327,11 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // 頁面載入後執行一次初始化，並每＿秒檢查路徑與空白狀態
 document.addEventListener("DOMContentLoaded", async () => {
   // 載入語系與套用文字
-  const savedLang = localStorage.getItem(LANGUAGE_KEY) || "zh";
-  await loadMessages(savedLang);
+  const { [LANGUAGE_KEY]: storedLang } = await chrome.storage.local.get(
+    LANGUAGE_KEY
+  );
+  const lang = storedLang || "zh";
+  await loadMessages(lang);
   applyMessages();
 
   // 初始化書籤
