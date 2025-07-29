@@ -4,7 +4,7 @@
     "description": "拡張機能名"
   },
   "description": {
-    "message": "ChatGPT メッセージを簡単にブックマーク＆ジャンプ！サイドバーで即時戻れる、Enterで改行、ダブルクリックで送信。思考整理も安心。",
+    "message": "ワンクリックでメッセージをブックマーク。サイドバーからすぐにアクセスして、会話の振り返りも簡単。",
     "description": "拡張機能の説明"
   },
   "sidebarTitle": {
