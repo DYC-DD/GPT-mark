@@ -1,14 +1,12 @@
-// 1. 定義網站的 origin
 const ALLOWED_ORIGINS = ["https://chat.openai.com", "https://chatgpt.com"];
 
-// 根據 tabId 與 URL 更新該分頁的側邊欄狀態
+// ----- 根據當前分頁啟用或停用側邊欄 -----
 async function updateSidePanelForTab(tabId, url) {
   if (!url) {
     await chrome.sidePanel.setOptions({ tabId, enabled: false });
     return;
   }
 
-  // 只在 chatgpt.com 開啟
   const origin = new URL(url).origin;
   if (ALLOWED_ORIGINS.includes(origin)) {
     await chrome.sidePanel.setOptions({
@@ -24,18 +22,33 @@ async function updateSidePanelForTab(tabId, url) {
   }
 }
 
-// 2. 安裝或更新 讓工具列按鈕可切換側邊欄
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+// ----- 分頁的狀態或網址變動時更新側邊欄狀態 -----
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.url) {
+    return updateSidePanelForTab(tabId, changeInfo.url);
+  }
+  if (changeInfo.status === "complete" && tab.url) {
+    return updateSidePanelForTab(tabId, tab.url);
+  }
 });
 
-// 3. 點擊工具列按鈕時 先更新啟用狀態再在允許網域下開啟側邊欄
+// ----- 擴充功能安裝/更新時：設定側邊欄點擊行為與右鍵選單 -----
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  chrome.contextMenus.create({
+    id: "open-sidebar",
+    title: "Open GPT-mark",
+    contexts: ["page", "action"],
+    documentUrlPatterns: ["https://chat.openai.com/*", "https://chatgpt.com/*"],
+  });
+});
+
+// ----- 點擊擴充功能圖示開啟側邊欄 -----
 chrome.action.onClicked.addListener(async (tab) => {
   await updateSidePanelForTab(tab.id, tab.url);
   try {
     const origin = new URL(tab.url || "").origin;
     if (ALLOWED_ORIGINS.includes(origin)) {
-      // 僅在允許的網域下才真正呼叫 open
       await chrome.sidePanel.open({ tabId: tab.id });
     }
   } catch (e) {
@@ -43,14 +56,24 @@ chrome.action.onClicked.addListener(async (tab) => {
   }
 });
 
-// 4. 分頁載入完成後：動態啟／隱側邊欄
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === "complete") {
-    updateSidePanelForTab(tabId, tab.url);
-  }
+// ----- 點右鍵選單開啟側邊欄 -----
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId !== "open-sidebar" || !tab?.id || !tab.url) return;
+  const origin = new URL(tab.url).origin;
+  if (!ALLOWED_ORIGINS.includes(origin)) return;
+  chrome.sidePanel.setOptions(
+    {
+      tabId: tab.id,
+      path: "src/sidebar/sidebar.html",
+      enabled: true,
+    },
+    () => {
+      chrome.sidePanel.open({ tabId: tab.id });
+    }
+  );
 });
 
-// 5. 使用者切換分頁：即時更新側邊欄
+// ----- 切換分頁根據新分頁網址更新側邊欄啟用狀態 -----
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   const tab = await chrome.tabs.get(tabId);
   updateSidePanelForTab(tabId, tab.url);

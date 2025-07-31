@@ -88,49 +88,43 @@ document
 
 async function downloadBookmarks() {
   chrome.storage.local.get(null, (res) => {
-    const singleChats = [];
-    const sharedChats = [];
+    const chats = [];
 
     for (const [pathname, messages] of Object.entries(res)) {
       if (!Array.isArray(messages) || messages.length === 0) continue;
 
       const parts = pathname.split("/");
+      const chatId = parts.at(-1);
       const url = pathname.startsWith("/c/")
         ? `https://chatgpt.com${pathname}`
         : `https://chat.openai.com${pathname}`;
 
       const formattedMessages = messages.map((msg) => ({
-        ...msg,
+        id: msg.id,
         role:
           msg.role === "assistant"
             ? "ChatGPT"
             : msg.role === "user"
             ? "User"
             : msg.role || "Unknown",
+        content: msg.content || "",
+        hashtags: msg.hashtags || [],
       }));
 
-      const item = {
+      chats.push({
+        chatId,
         url,
-        chatId: parts[2],
+        bookmarkCount: formattedMessages.length,
         bookmarks: formattedMessages,
-      };
-
-      if (pathname.startsWith("/c/")) {
-        singleChats.push(item);
-      } else if (pathname.startsWith("/g/")) {
-        item.groupId = parts[2];
-        item.chatId = parts[4];
-        sharedChats.push(item);
-      }
+      });
     }
 
     const payload = {
       downloadInfo: {
         downloadedAt: new Date().toISOString(),
-        totalChats: singleChats.length + sharedChats.length,
+        totalChats: chats.length,
       },
-      singleChats,
-      sharedChats,
+      chats,
     };
 
     const blob = new Blob([JSON.stringify(payload, null, 4)], {
@@ -138,7 +132,7 @@ async function downloadBookmarks() {
     });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = "chatgpt_bookmarks_pretty.json";
+    a.download = "chatgpt_bookmarks.json";
     a.click();
     URL.revokeObjectURL(a.href);
   });
