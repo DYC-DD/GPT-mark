@@ -2,6 +2,24 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [3.1.0] - 2025-07-29
+
+### Added
+
+- 新增「右鍵選單」快速開啟側邊欄功能（僅限 ChatGPT 網頁）
+- `manifest.json` 增加 `contextMenus` 權限
+
+### Changed
+
+- 調整擴充功能說明與名稱欄位（多語系 message.json 中）
+- 匯出書籤 JSON 檔案結構更新：
+  - 外層包含 `downloadInfo`（下載時間與聊天室數）
+  - 書籤欄位包含 `chatId`、`url`、`bookmarks`（含 `id`、`content`、`role`、`hashtags`）
+
+### Fixed
+
+- 修正非 ChatGPT 網站仍保留側邊欄狀態的問題
+
 ## [3.0.0] - 2025-07-26
 
 ### Added

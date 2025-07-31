@@ -4,7 +4,7 @@
     "description": "擴充功能名稱"
   },
   "description": {
-    "message": "ChatGPT 書籤 + 快捷傳送！訊息一鍵加書籤，側邊欄快速跳轉回顧內容。編輯訊息輸入時單擊 Enter 換行、快速雙擊送出，格式化思路不怕誤發送！",
+    "message": "一鍵加入書籤，透過側邊欄即時跳回重要訊息，高效整理與回顧對話內容！",
     "description": "擴充功能描述"
   },
   "sidebarTitle": {

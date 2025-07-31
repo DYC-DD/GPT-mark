@@ -1,14 +1,14 @@
 {
   "manifest_version": 3,
   "default_locale": "zh_TW",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "name": "__MSG_name__",
   "description": "__MSG_description__",
   "options_ui": {
     "page": "src/settings/settings.html",
     "open_in_tab": true
   },
-  "permissions": ["activeTab", "scripting", "storage", "tabs", "sidePanel"],
+  "permissions": ["activeTab", "storage", "tabs", "sidePanel", "contextMenus"],
   "action": {
     "default_icon": "assets/logo/GPT-pin16.png",
     "default_title": "ChatGPT Bookmark"
