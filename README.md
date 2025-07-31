@@ -6,7 +6,7 @@
 
 **「重點訊息總是被大量回覆淹沒，有用的內容又常在滑動中遺失，怎麼快速標記並精準跳回？」**
 
-![GitHub release](https://img.shields.io/github/v/release/DYC-DD/GPT-mark) ![License](https://img.shields.io/github/license/DYC-DD/GPT-mark) ![last commit](https://img.shields.io/github/last-commit/DYC-DD/GPT-mark)
+![GitHub release](https://img.shields.io/github/v/release/DYC-DD/GPT-mark) ![License](https://img.shields.io/github/license/DYC-DD/GPT-mark) ![last commit](https://img.shields.io/github/last-commit/DYC-DD/GPT-mark) [![website](https://img.shields.io/badge/website-GPT--Mark-0aaaff)](https://dyc-dd.github.io/GPT-mark/) [![Download](https://img.shields.io/badge/Download-Chrome%20Store-4285F4?style=flat&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/bhkpgjjgjgdgpbjdfhkljhcefohegooc)
 
 </div>
 
@@ -38,24 +38,23 @@
 
 ## 安裝方式
 
-1. 下載此專案至您想存放位置
+- **正式版（推薦）：**
 
-   - 下載方式：[點此下載](https://github.com/DYC-DD/GPT-mark/archive/refs/tags/v2.2.1.zip)
+  - 直接從 Chrome 線上應用程式商店安裝：[📥 點此安裝 GPT-Mark](https://chromewebstore.google.com/detail/bhkpgjjgjgdgpbjdfhkljhcefohegooc?utm_source=item-share-cb)
 
-   - clone 方式：
+- **新功能 Beta 版：**
+
+  1. 下載此專案至您想存放位置（`git clone` 方式）：
 
      ```bash
-     git clone --branch release git@github.com:DYC-DD/GPT-mark.git
+     git clone --branch feature/notion git@github.com:DYC-DD/GPT-mark.git
      ```
 
-2. 打開 Chrome 瀏覽器，輸入
-   ```bash
-   chrome://extensions
-   ```
-3. 開啟右上角的「開發人員模式」
-4. 點擊「載入未封裝項目」
-5. 選取此專案資料夾
-6. 開啟或重新整理 [ChatGPT](https://chatgpt.com/) 即可使用
+  2. 打開 Chrome 瀏覽器，輸入：`chrome://extensions`
+  3. 開啟右上角的「開發人員模式」
+  4. 點擊「載入未封裝項目」
+  5. 選取此專案資料夾
+  6. 開啟或重新整理 [ChatGPT](https://chatgpt.com/) 即可使用
 
 ## Demo 預覽
 
@@ -77,11 +76,46 @@
 
 ![](./assets/demo/auto_scroll_to_message.gif)
 
-**移除 hashtag 和書籤：**
+## 匯出 JSON 結構
 
-![](./assets/demo/remove_hashtag_and_bookmark.gif)
+匯出的書籤資料結構為 JSON (`chatgpt_bookmarks.json`)，範例格式如下：
+
+```json
+{
+  "downloadInfo": {
+    "downloadedAt": "2025-01-01T06:00:00.000Z",
+    "totalChats": 5
+  },
+  "chats": [
+    {
+      "chatId": "6884835f-5d24-xxxxxx",
+      "url": "https://chatgpt.com/c/xxxxxx",
+      "bookmarkCount": 2,
+      "bookmarks": [
+        {
+          "id": "057b6385-751d-xxxxxx",
+          "role": "User",
+          "content": "一句話介紹 LLM",
+          "hashtags": ["AI"]
+        },
+        {
+          "id": "d2c2b291-9ae7-xxxxxx",
+          "role": "ChatGPT",
+          "content": "大型語言模型（LLM）是透過訓練大量文本資料來理解與生成自然語言。",
+          "hashtags": ["AI", "ML", "DL"]
+        }
+      ]
+    }
+  ]
+}
+```
 
 ## 注意事項
 
 > - 本擴充功能僅作用於 [ChatGPT 官方網站](https://chatgpt.com/)
 > - 所有資料僅儲存在本機的 `chrome.storage.local`
+> - 此工具不會蒐集或使用你的資料。
+
+## 更新紀錄
+
+查看完整更新紀錄：[CHANGELOG](./docs/CHANGELOG.md)
