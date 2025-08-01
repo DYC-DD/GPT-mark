@@ -1,0 +1,86 @@
+.header-wrapper {
+  position: fixed;
+  top: 36px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  z-index: 1000;
+  height: 46px;
+  width: max-content;
+}
+
+.frosted-header {
+  position: static;
+  height: 100%;
+  padding: 0 1.5rem;
+  min-width: 600px;
+  background: rgba(119, 119, 119, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(16px);
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  transition: background 0.3s ease;
+}
+
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.logo {
+  font-weight: 600;
+  font-size: 1rem;
+  color: white;
+  text-decoration: none;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.25rem;
+}
+
+.nav-links a {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.2s ease;
+}
+
+.nav-links a:hover {
+  color: white;
+}
+
+.floating-icon-buttons {
+  display: flex;
+  gap: 0.5rem;
+  height: 100%;
+}
+
+.icon-button {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, transform 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.icon-button img {
+  width: 22px;
+  height: 22px;
+  filter: brightness(0) invert(1);
+}
+
+.icon-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+}

@@ -2,12 +2,24 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  user-select: none;
 }
 
 body {
   background-color: #000000;
   margin: 0;
   padding: 0;
-  overflow: hidden;
-  height: 100%;
+  overflow-x: hidden;
+  height: auto;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.global-particles-background {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
 }

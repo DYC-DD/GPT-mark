@@ -125,7 +125,7 @@ const Particles = ({
     };
 
     if (moveParticlesOnHover) {
-      container.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mousemove", handleMouseMove);
     }
 
     const count = particleCount;
