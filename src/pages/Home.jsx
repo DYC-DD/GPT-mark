@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
 import gptImage from "../assets/GPT-pin-Photoroom.png";
 import starIcon from "../assets/star-fill.svg";
 import texture from "../assets/texture.avif";
@@ -12,21 +12,6 @@ function Home() {
     stars: null,
     avatarUrl: null,
   });
-
-  // 從 GitHub API 抓最新 Release 的 zipball_url
-  const downloadLatestRelease = useCallback(async () => {
-    try {
-      const res = await fetch(
-        "https://api.github.com/repos/DYC-DD/GPT-mark/releases/latest"
-      );
-      if (!res.ok) throw new Error("Fetch latest release failed");
-      const release = await res.json();
-      const zipUrl = release.zipball_url;
-      window.location.assign(zipUrl);
-    } catch (err) {
-      console.error(err);
-    }
-  }, []);
 
   return (
     <div className="home-container">
@@ -48,15 +33,21 @@ function Home() {
           name="ChatGPT Mark"
           title="Chrome extension"
           handle="DYC-DD"
-          projectUrl="https://github.com/DYC-DD/GPT-mark"
+          projectUrl="https://chromewebstore.google.com/detail/bhkpgjjgjgdgpbjdfhkljhcefohegooc?utm_source=item-share-cb"
           profileUrl="https://github.com/DYC-DD"
           iconUrl={texture}
           status={
             githubInfo.stars ? (
-              <span className="pc-status-stars">
+              <a
+                href="https://github.com/DYC-DD/GPT-mark"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="pc-status-stars"
+                style={{ textDecoration: "none" }}
+              >
                 <img src={starIcon} alt="Star" />
                 {githubInfo.stars} Stars
-              </span>
+              </a>
             ) : (
               "Loading..."
             )
@@ -66,7 +57,12 @@ function Home() {
           showUserInfo={true}
           enableTilt={true}
           contactText="Download"
-          onContactClick={downloadLatestRelease}
+          onContactClick={() =>
+            window.open(
+              "https://chromewebstore.google.com/detail/bhkpgjjgjgdgpbjdfhkljhcefohegooc?utm_source=item-share-cb",
+              "_blank"
+            )
+          }
         />
 
         <GithubStars user="DYC-DD" repo="GPT-mark" onFetch={setGithubInfo} />

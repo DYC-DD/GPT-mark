@@ -2,6 +2,12 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [1.0.1] - 2025-08-01
+
+### Changed
+
+- 修改 Chrome 擴充功能的連結網址，統一導向正式發佈頁面。
+
 ## [1.0.0] - 2025-07-16
 
 ### Added
