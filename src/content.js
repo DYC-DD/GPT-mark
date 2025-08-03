@@ -128,6 +128,20 @@ document.addEventListener("keydown", handleKeyDown);
 const SCAN_INTERVAL = 2000; // 動態載入的掃描間隔（毫秒）
 const EMPTY_ICON = "assets/icons/bookmarks.svg";
 const FILL_ICON = "assets/icons/bookmarks-fill.svg";
+const NOTEBOOK_ICON = "assets/icons/notion.svg";
+const CHECK_ICON = "assets/icons/check.svg";
+const NOTION_PAGE_ID = "<YOUR_NOTION_PAGE_ID>";
+
+/**
+ * 只保留形如 https://chatgpt.com/c/{uuid} 的 URL
+ * 若當前在 /g/.../c/...，也會萃取後半段
+ */
+function getCleanChatUrl(rawUrl) {
+  const m = rawUrl.match(
+    /(https?:\/\/chatgpt\.com)\/(?:g\/[^\/]+\/)?(c\/[0-9a-fA-F-]+)/
+  );
+  return m ? `${m[1]}/${m[2]}` : rawUrl;
+}
 
 // 將任意 /g/.../c/<chatId> 或 /c/<chatId>/ 統一為 /c/<chatId>
 function normalizePath(p) {
@@ -270,6 +284,91 @@ function createBookmarkButton(msg) {
   return btn;
 }
 
+function createNotebookButton(msg) {
+  const id = msg.dataset.messageId;
+  if (
+    !id ||
+    document.querySelector(`.chatgpt-notebook-btn[data-notebook-id="${id}"]`)
+  ) {
+    return null;
+  }
+
+  const btn = document.createElement("button");
+  btn.className = "chatgpt-notebook-btn";
+  btn.title = "筆記到 Notion";
+  btn.setAttribute("data-notebook-id", id);
+  Object.assign(btn.style, {
+    width: "32px",
+    height: "32px",
+    background: "transparent",
+    border: "none",
+    borderRadius: "8px",
+    padding: "0",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    transition: "background-color 0.2s",
+    filter: getIconFilter(),
+  });
+
+  const icon = document.createElement("img");
+  icon.style.width = "16px";
+  icon.style.height = "16px";
+  icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
+  btn.appendChild(icon);
+
+  btn.addEventListener("click", async () => {
+    // 1. 先切到打勾 icon，給予使用者反饋
+    icon.src = chrome.runtime.getURL(CHECK_ICON);
+
+    // 2. 準備 Markdown 文字
+    // ⚙️ 在訊息前加上分隔線與聊天室網址
+    const pageUrl = getCleanChatUrl(window.location.href);
+
+    const rawText = msg.innerText.trim();
+    const markdown = [
+      "---",
+      pageUrl,
+      "", // 空行
+      rawText,
+    ].join("\n");
+
+    // 2. 傳給 background 去呼叫 Notion API
+    // 即時讀取使用者設定好的 Page ID
+    chrome.storage.local.get("notion-page-id", ({ "notion-page-id": pid }) => {
+      if (!/^[0-9a-fA-F]{32}$/.test(pid || "")) {
+        console.warn("[Notion] 尚未設定 Page ID");
+        icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
+        return;
+      }
+      chrome.runtime.sendMessage(
+        { action: "saveToNotion", markdown, pageId: pid },
+        (res) => {
+          if (!res?.success) {
+            console.error("[Notion] 錯誤：", res?.error);
+            icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
+          }
+        }
+      );
+    });
+
+    // 4. 3 秒後還原原本筆記本圖示
+    setTimeout(() => {
+      icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
+    }, 3000);
+  });
+
+  btn.addEventListener("mouseenter", () => {
+    btn.style.backgroundColor = getHoverBgColor();
+  });
+  btn.addEventListener("mouseleave", () => {
+    btn.style.backgroundColor = "transparent";
+  });
+
+  return btn;
+}
+
 // 嘗試將書籤按鈕注入到指定訊息
 function tryInjectButton(msg) {
   const btn = createBookmarkButton(msg);
@@ -281,8 +380,13 @@ function tryInjectButton(msg) {
     '[data-testid="copy-turn-action-button"]'
   );
   if (copyBtn && copyBtn.parentNode) {
-    // 複製按鈕已存在，直接插在它左邊
+    // 1. 插入 書籤 按鈕
     copyBtn.parentNode.insertBefore(btn, copyBtn);
+    // 2. 再插入 Notebook 按鈕
+    const notebookBtn = createNotebookButton(msg);
+    if (notebookBtn) {
+      copyBtn.parentNode.insertBefore(notebookBtn, btn.nextSibling);
+    }
   } else {
     // 複製按鈕還沒出現，500ms 後再嘗試一次
     setTimeout(() => {

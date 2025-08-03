@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "default_locale": "zh_TW",
-  "version": "3.1.0",
+  "version": "4.0.0",
   "name": "__MSG_name__",
   "description": "__MSG_description__",
   "options_ui": {
@@ -13,7 +13,11 @@
     "default_icon": "assets/logo/GPT-pin16.png",
     "default_title": "ChatGPT Bookmark"
   },
-  "host_permissions": ["https://chat.openai.com/*", "https://chatgpt.com/*"],
+  "host_permissions": [
+    "https://chat.openai.com/*",
+    "https://chatgpt.com/*",
+    "https://api.notion.com/*"
+  ],
   "content_scripts": [
     {
       "matches": ["https://chat.openai.com/*", "https://chatgpt.com/*"],
@@ -21,7 +25,8 @@
     }
   ],
   "background": {
-    "service_worker": "src/background.js"
+    "service_worker": "src/background.js",
+    "type": "module"
   },
   "icons": {
     "16": "/assets/logo/GPT-pin16.png",
@@ -32,7 +37,9 @@
     {
       "resources": [
         "assets/icons/bookmarks.svg",
-        "assets/icons/bookmarks-fill.svg"
+        "assets/icons/bookmarks-fill.svg",
+        "assets/icons/notion.svg",
+        "assets/icons/check.svg"
       ],
       "matches": ["https://chat.openai.com/*", "https://chatgpt.com/*"]
     }

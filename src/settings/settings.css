@@ -72,8 +72,8 @@ body.dark .tabs {
   justify-content: center;
   gap: 6px;
   flex-shrink: 0;
-  width: 90px;
-  height: 30px;
+  width: 100px;
+  height: 36px;
   cursor: pointer;
   font-size: 0.9rem;
   color: var(--fg);
@@ -108,8 +108,8 @@ body.dark input[type="radio"]:checked + label .tab-icon {
   position: absolute;
   top: 8px;
   left: 8px;
-  width: 90px;
-  height: 30px;
+  width: 100px;
+  height: 36px;
   border-radius: 99px;
   background-color: #e6eef9;
   transition: transform 0.25s ease-out;
@@ -130,12 +130,6 @@ body.dark .glider {
 #radio-dark:checked ~ .glider,
 #lang-ja:checked ~ .glider {
   transform: translateX(calc(2 * (100% + 12px)));
-}
-
-@media (max-width: 700px) {
-  .tabs {
-    transform: scale(0.8);
-  }
 }
 
 .download-btn {
@@ -164,4 +158,78 @@ body.dark .download-btn {
 }
 .download-btn:hover {
   opacity: 0.9;
+}
+
+/* Notion Page / Token 共用容器 */
+.notion-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 340px;
+  margin: 0 auto;
+  gap: 8px;
+}
+
+.notion-input {
+  height: 46px;
+  padding: 0 12px;
+  border: 1px solid #aaa;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  line-height: 40px;
+  outline: none;
+  transition: border-color 0.2s, background-color 0.2s;
+  flex: 1;
+}
+body.light .notion-input {
+  background: #fff;
+  color: #000;
+  border-color: #ccc;
+}
+body.dark .notion-input {
+  background: #303030;
+  color: #f3f3f3;
+  border-color: #555;
+}
+.notion-input:focus {
+  border-color: #0077ff;
+}
+
+.save-btn {
+  width: 46px;
+  height: 46px;
+  padding: 0;
+  margin-left: 0px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  background-color: #0077ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+}
+body.light .save-btn {
+  background-color: #0077ff;
+  color: #fff;
+}
+body.dark .save-btn {
+  background-color: #4a90e2;
+  color: #fff;
+}
+.save-btn:hover {
+  opacity: 0.9;
+}
+
+.token-input,
+.save-btn,
+.download-btn {
+  box-shadow: 0 0 1px rgba(24, 94, 224, 0.15),
+    0 6px 12px rgba(24, 94, 224, 0.15);
+}
+
+body.dark .token-input,
+body.dark .save-btn,
+body.dark .download-btn {
+  box-shadow: 0 0 1px rgba(0, 0, 0, 0.5), 0 6px 12px rgba(0, 0, 0, 0.5);
 }

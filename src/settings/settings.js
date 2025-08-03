@@ -1,6 +1,19 @@
 const LOCALE_MAP = { zh: "zh_TW", en: "en", ja: "ja" };
 const LANGUAGE_KEY = "sidebar-language";
 const MOOD_KEY = "sidebar-mood";
+const NOTION_TOKEN_KEY = "notion-integration-token";
+const NOTION_PAGE_KEY = "notion-page-id";
+
+// ----- Token 遮蔽 -----
+function maskToken(token) {
+  if (!token || token.length <= 10) return token || "";
+  const middleLen = token.length - 10;
+  return token.slice(0, 10) + "*".repeat(middleLen) + token.slice(-10);
+}
+function maskId(id) {
+  if (!id || id.length <= 8) return id || "";
+  return id.slice(0, 4) + "*".repeat(id.length - 8) + id.slice(-4);
+}
 
 // 全域儲存翻譯文字
 let messages = {};
@@ -64,6 +77,18 @@ async function initSettings() {
   document.getElementById(`radio-${mood}`).checked = true;
   applyRadioMood(mood);
 
+  // ===== 讀取並填入（遮蔽後）Integration Token =====
+  const { [NOTION_TOKEN_KEY]: savedToken } = await chrome.storage.local.get(
+    NOTION_TOKEN_KEY
+  );
+  document.getElementById("notion-token-input").value = maskToken(savedToken);
+
+  // ===== 讀取並填入 Notion Page ID =====
+  const { [NOTION_PAGE_KEY]: savedPageId } = await chrome.storage.local.get(
+    NOTION_PAGE_KEY
+  );
+  document.getElementById("notion-page-input").value = maskId(savedPageId);
+
   // 綁定 radio 變更事件
   document
     .querySelectorAll('.lang-container input[type="radio"]')
@@ -80,6 +105,36 @@ async function initSettings() {
       );
     });
 }
+// ----- 綁定儲存按鈕 -----
+document.addEventListener("DOMContentLoaded", () => {
+  initSettings();
+
+  const tokenEl = document.getElementById("notion-token-input");
+  const pageEl = document.getElementById("notion-page-input");
+
+  document
+    .getElementById("save-notion-token")
+    .addEventListener("click", async () => {
+      const raw = tokenEl.value.trim();
+      if (!raw) return console.warn("請輸入有效 Token");
+
+      await chrome.storage.local.set({ [NOTION_TOKEN_KEY]: raw });
+      tokenEl.value = maskToken(raw);
+      console.log("🔑  Token 已更新");
+    });
+
+  document
+    .getElementById("save-notion-page")
+    .addEventListener("click", async () => {
+      const id = pageEl.value.trim().replace(/-/g, "");
+      if (!/^[0-9a-fA-F]{32}$/.test(id))
+        return console.warn("Page ID 需為 32 位 16 進位字元");
+
+      await chrome.storage.local.set({ [NOTION_PAGE_KEY]: id });
+      pageEl.value = maskId(id);
+      console.log("📄  Page ID 已更新");
+    });
+});
 
 // 綁定匯出按鈕
 document
@@ -137,6 +192,24 @@ async function downloadBookmarks() {
     URL.revokeObjectURL(a.href);
   });
 }
+
+document.addEventListener("DOMContentLoaded", () => {
+  initSettings();
+
+  // 綁定 Notion Token 儲存
+  document
+    .getElementById("save-notion-token")
+    .addEventListener("click", async () => {
+      const token = document.getElementById("notion-token-input").value.trim();
+      if (token) {
+        await chrome.storage.local.set({ [NOTION_TOKEN_KEY]: token });
+        // 可選：顯示一個短暫提示，或切換 icon
+        console.log("Notion Token 已儲存");
+      } else {
+        console.warn("請輸入有效的 Notion Token");
+      }
+    });
+});
 
 // DOM 載入完成後執行初始化
 document.addEventListener("DOMContentLoaded", initSettings);
