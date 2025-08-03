@@ -2,6 +2,14 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [1.1.0] -
+
+### Added
+
+- 新增 Header 元件，包含 logo、導航連結與浮動按鈕。
+- 加入頁面錨點功能，支援滑動至 Home、Features、Contact 等段落。
+- 嵌入 YouTube 影片於 Features 區塊中，支援響應式顯示與置中樣式。
+
 ## [1.0.1] - 2025-08-01
 
 ### Changed

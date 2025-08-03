@@ -57,9 +57,18 @@ function Home() {
       </section>
 
       <section id="features" className="section fullpage-section">
-        <div className="section-inner">
+        <div className="section-inner features-section">
           <h1>Features</h1>
           <p>Features</p>
+
+          <div className="features-video-wrapper">
+            <iframe
+              src="https://www.youtube.com/embed/dQw4w9WgXcQ"
+              title="YouTube video"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+            ></iframe>
+          </div>
         </div>
       </section>
 
