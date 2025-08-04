@@ -309,54 +309,60 @@ function createNotebookButton(msg) {
     justifyContent: "center",
     cursor: "pointer",
     transition: "background-color 0.2s",
-    filter: getIconFilter(),
   });
 
   const icon = document.createElement("img");
-  icon.style.width = "16px";
-  icon.style.height = "16px";
+  Object.assign(icon.style, {
+    width: "16px",
+    height: "16px",
+    pointerEvents: "none",
+    filter: getIconFilter(),
+  });
   icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
   btn.appendChild(icon);
 
   btn.addEventListener("click", async () => {
-    // 1. 先切到打勾 icon，給予使用者反饋
     icon.src = chrome.runtime.getURL(CHECK_ICON);
 
-    // 2. 準備 Markdown 文字
-    // ⚙️ 在訊息前加上分隔線與聊天室網址
-    const pageUrl = getCleanChatUrl(window.location.href);
-
-    const rawText = msg.innerText.trim();
-    const markdown = [
-      "---",
-      pageUrl,
-      "", // 空行
-      rawText,
-    ].join("\n");
-
-    // 2. 傳給 background 去呼叫 Notion API
-    // 即時讀取使用者設定好的 Page ID
-    chrome.storage.local.get("notion-page-id", ({ "notion-page-id": pid }) => {
-      if (!/^[0-9a-fA-F]{32}$/.test(pid || "")) {
-        console.warn("[Notion] 尚未設定 Page ID");
-        icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
-        return;
-      }
-      chrome.runtime.sendMessage(
-        { action: "saveToNotion", markdown, pageId: pid },
-        (res) => {
-          if (!res?.success) {
-            console.error("[Notion] 錯誤：", res?.error);
-            icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
-          }
+    // 讀取 Integration Token 與 Page ID
+    chrome.storage.local.get(
+      ["notion-integration-token", "notion-page-id"],
+      ({ "notion-integration-token": token, "notion-page-id": pageId }) => {
+        // 若 Token 缺失
+        if (!token) {
+          alert("請先在設定頁輸入 Notion Integration Token");
+          icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
+          return;
         }
-      );
-    });
+        // 若 Page ID 缺失
+        if (!pageId) {
+          alert("請先在設定頁輸入 Notion Page ID");
+          icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
+          return;
+        }
 
-    // 4. 3 秒後還原原本筆記本圖示
-    setTimeout(() => {
-      icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
-    }, 3000);
+        // 準備 Markdown
+        const pageUrl = getCleanChatUrl(window.location.href);
+        const rawText = msg.innerText.trim();
+        const markdown = ["---", pageUrl, "", rawText].join("\n");
+
+        // 正式送出給 background 去呼叫 Notion API
+        chrome.runtime.sendMessage(
+          { action: "saveToNotion", markdown, pageId },
+          (res) => {
+            if (!res?.success) {
+              icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
+              alert(`Notion 連接錯誤：請檢查 Token 或 Page ID`);
+            }
+          }
+        );
+
+        // 3 秒後還原筆記圖示
+        setTimeout(() => {
+          icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
+        }, 3000);
+      }
+    );
   });
 
   btn.addEventListener("mouseenter", () => {
@@ -454,9 +460,11 @@ function observeAllTurns() {
 // 更新所有書籤 icon 的濾鏡（配合主題切換）
 function updateBookmarkIcons() {
   const filter = getIconFilter();
-  document.querySelectorAll(".chatgpt-bookmark-btn img").forEach((icon) => {
-    icon.style.filter = filter;
-  });
+  document
+    .querySelectorAll(".chatgpt-bookmark-btn img, .chatgpt-notebook-btn img")
+    .forEach((icon) => {
+      icon.style.filter = filter;
+    });
 }
 
 // 監聽 <html> class 變化（dark / light 切換）

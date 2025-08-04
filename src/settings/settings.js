@@ -106,34 +106,52 @@ async function initSettings() {
     });
 }
 // ----- 綁定儲存按鈕 -----
-document.addEventListener("DOMContentLoaded", () => {
-  initSettings();
+document.addEventListener("DOMContentLoaded", async () => {
+  // 初始化：載入語系、主題、Token、Page ID
+  await initSettings();
 
+  // 取得欄位元素
   const tokenEl = document.getElementById("notion-token-input");
   const pageEl = document.getElementById("notion-page-input");
 
+  // Integration Token 儲存／清空
   document
     .getElementById("save-notion-token")
     .addEventListener("click", async () => {
       const raw = tokenEl.value.trim();
-      if (!raw) return console.warn("請輸入有效 Token");
-
-      await chrome.storage.local.set({ [NOTION_TOKEN_KEY]: raw });
-      tokenEl.value = maskToken(raw);
-      console.log("🔑  Token 已更新");
+      if (!raw) {
+        await chrome.storage.local.remove(NOTION_TOKEN_KEY);
+        tokenEl.value = "";
+        console.log("🔑 Token 已清空");
+      } else {
+        await chrome.storage.local.set({ [NOTION_TOKEN_KEY]: raw });
+        tokenEl.value = maskToken(raw);
+        console.log("🔑 Token 已更新");
+      }
     });
 
+  // Notion Page ID 儲存／清空
   document
     .getElementById("save-notion-page")
     .addEventListener("click", async () => {
       const id = pageEl.value.trim().replace(/-/g, "");
-      if (!/^[0-9a-fA-F]{32}$/.test(id))
-        return console.warn("Page ID 需為 32 位 16 進位字元");
-
-      await chrome.storage.local.set({ [NOTION_PAGE_KEY]: id });
-      pageEl.value = maskId(id);
-      console.log("📄  Page ID 已更新");
+      if (!id) {
+        await chrome.storage.local.remove(NOTION_PAGE_KEY);
+        pageEl.value = "";
+        console.log("📄 Page ID 已清空");
+      } else if (!/^[0-9a-fA-F]{32}$/.test(id)) {
+        console.warn("Page ID 需為 32 位 16 進位字元");
+      } else {
+        await chrome.storage.local.set({ [NOTION_PAGE_KEY]: id });
+        pageEl.value = maskId(id);
+        console.log("📄 Page ID 已更新");
+      }
     });
+
+  // 匯出書籤
+  document
+    .getElementById("download-btn")
+    .addEventListener("click", downloadBookmarks);
 });
 
 // 綁定匯出按鈕
@@ -192,24 +210,6 @@ async function downloadBookmarks() {
     URL.revokeObjectURL(a.href);
   });
 }
-
-document.addEventListener("DOMContentLoaded", () => {
-  initSettings();
-
-  // 綁定 Notion Token 儲存
-  document
-    .getElementById("save-notion-token")
-    .addEventListener("click", async () => {
-      const token = document.getElementById("notion-token-input").value.trim();
-      if (token) {
-        await chrome.storage.local.set({ [NOTION_TOKEN_KEY]: token });
-        // 可選：顯示一個短暫提示，或切換 icon
-        console.log("Notion Token 已儲存");
-      } else {
-        console.warn("請輸入有效的 Notion Token");
-      }
-    });
-});
 
 // DOM 載入完成後執行初始化
 document.addEventListener("DOMContentLoaded", initSettings);
