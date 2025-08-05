@@ -1,4 +1,5 @@
-import { saveMarkdownToNotion } from "./utils/notion.js";
+import { appendBlocks, saveMarkdownToNotion } from "./utils/notion.js";
+
 const ALLOWED_ORIGINS = ["https://chat.openai.com", "https://chatgpt.com"];
 
 // ----- 根據當前分頁啟用或停用側邊欄 -----
@@ -80,7 +81,15 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   updateSidePanelForTab(tabId, tab.url);
 });
 
+// ----- 處理 Notion API -----
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.action === "appendBlocks") {
+    appendBlocks(msg.pageId, msg.blocks)
+      .then(() => sendResponse({ success: true }))
+      .catch((e) => sendResponse({ success: false, error: e.message }));
+    return true;
+  }
+
   if (msg.action === "saveToNotion") {
     saveMarkdownToNotion({
       markdown: msg.markdown,
@@ -88,7 +97,6 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     })
       .then((res) => sendResponse({ success: true }))
       .catch((err) => sendResponse({ success: false, error: err.message }));
-    // 回呼要非同步用 true 保留通道
     return true;
   }
 });

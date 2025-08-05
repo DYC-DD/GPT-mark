@@ -1,27 +1,7 @@
-/**
- * util: Notion API helpers for GPT‑mark
- * ------------------------------------
- * Handles:
- *   1. Retrieve stored integration token from chrome.storage
- *   2. Convert simple Markdown (h1/h2/h3, code, math, paragraph) to Notion blocks
- *   3. Append blocks to a target Notion page
- *
- * Note: This file is intended to be imported from content or background scripts.
- *       Because Notion API (https://api.notion.com) has CORS restrictions, calls
- *       should be executed from the service‑worker (background) when possible.
- *       If you call from a content script you may need to use `chrome.runtime.sendMessage`
- *       to delegate network requests to the background.
- */
-
-/* global chrome */
-
 const NOTION_TOKEN_KEY = "notion-integration-token";
-const NOTION_VERSION = "2022-06-28"; // stable API version
+const NOTION_VERSION = "2022-06-28"; // Notion API version
 
-/**
- * Read integration token from chrome.storage.local
- * @returns {Promise<string|null>}
- */
+// ----- 讀取儲存在 storage 裡的 Notion Integration Token -----
 export async function getIntegrationToken() {
   return new Promise((resolve) => {
     chrome.storage.local.get([NOTION_TOKEN_KEY], (res) => {
@@ -30,12 +10,7 @@ export async function getIntegrationToken() {
   });
 }
 
-/**
- * Append blocks to the given Notion page (child list of blocks)
- * @param {string} pageId – Notion page (block) ID, 32‑char UUID without dashes
- * @param {Array<Object>} blocks – Notion block objects
- * @returns {Promise<Object>} – Notion API response JSON
- */
+// ----- 呼叫 Notion API 將 blocks 附加至指定頁面 -----
 export async function appendBlocks(pageId, blocks) {
   const token = await getIntegrationToken();
   if (!token) throw new Error("[Notion] integration token not found.");
@@ -59,16 +34,7 @@ export async function appendBlocks(pageId, blocks) {
   return res.json();
 }
 
-/**
- * Convert lightweight Markdown lines into Notion blocks.
- * Supported:
- *   # / ## / ### headings  (→ heading_1 / heading_2 / heading_3)
- *   ``` (fenced) code blocks (language autodetect disabled → plain_text)
- *   $$inline$$  math blocks (full‑line $$...$$)
- *   normal lines → paragraph blocks
- * @param {string} md – raw markdown
- * @returns {Array<Object>} Notion blocks
- */
+// ----- Markdown 轉換為 Notion blocks 陣列 -----
 export function markdownToBlocks(md) {
   const lines = md.split(/\r?\n/);
   const blocks = [];
@@ -76,6 +42,7 @@ export function markdownToBlocks(md) {
   let codeBuf = [];
   let dividerUsed = false;
 
+  // 匯出並清空 code 區段
   const flushCode = () => {
     if (!codeBuf.length) return;
     blocks.push({
@@ -91,14 +58,16 @@ export function markdownToBlocks(md) {
 
   for (const line of lines) {
     const trimmed = line.trim();
-    // only first '---' as divider
+
+    // 分隔線：僅允許第一個 ---
     if (!inCode && trimmed === "---" && !dividerUsed) {
       flushCode();
       blocks.push({ object: "block", type: "divider", divider: {} });
       dividerUsed = true;
       continue;
     }
-    // toggle code fence ```
+
+    // 進入/離開 code 區塊（```）
     if (line.trim().startsWith("```")) {
       if (inCode) flushCode();
       inCode = !inCode;
@@ -109,7 +78,7 @@ export function markdownToBlocks(md) {
       continue;
     }
 
-    // math
+    // 數學公式（整行包在 $$...$$ 中）
     if (/^\$\$.*\$\$$/.test(line.trim())) {
       blocks.push({
         object: "block",
@@ -118,7 +87,8 @@ export function markdownToBlocks(md) {
       });
       continue;
     }
-    // hyperlink block for URL-only lines
+
+    // 純 URL 超連結段落
     if (/^https?:\/\/\S+$/.test(trimmed)) {
       flushCode();
       blocks.push({
@@ -136,7 +106,7 @@ export function markdownToBlocks(md) {
       continue;
     }
 
-    // headings
+    // 標題處理
     if (/^###\s+/.test(line)) {
       blocks.push(makeHeading(line.replace(/^###\s+/, ""), 3));
       continue;
@@ -150,7 +120,7 @@ export function markdownToBlocks(md) {
       continue;
     }
 
-    // paragraph (empty lines ignored)
+    // 一般段落（忽略空行）
     if (line.trim().length) {
       blocks.push({
         object: "block",
@@ -164,6 +134,7 @@ export function markdownToBlocks(md) {
   return blocks;
 }
 
+// ----- 建立標題 block（heading_1/2/3） -----
 function makeHeading(text, level = 1) {
   const key = ["heading_1", "heading_2", "heading_3"][level - 1] ?? "heading_3";
   return {
@@ -175,13 +146,7 @@ function makeHeading(text, level = 1) {
   };
 }
 
-/**
- * High‑level helper: convert markdown to blocks and append to Notion.
- * @param {Object} opts
- * @param {string} opts.markdown – raw markdown text
- * @param {string} opts.pageId – destination Notion page ID (32‑char uuid without dashes)
- * @returns {Promise<Object>}
- */
+// ----- 封裝：將 markdown 全部轉為 blocks 並寫入 Notion 頁面 -----
 export async function saveMarkdownToNotion({ markdown, pageId }) {
   const blocks = markdownToBlocks(markdown);
   return appendBlocks(pageId, blocks);

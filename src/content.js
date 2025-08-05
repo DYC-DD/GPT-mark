@@ -132,6 +132,299 @@ const NOTEBOOK_ICON = "assets/icons/notion.svg";
 const CHECK_ICON = "assets/icons/check.svg";
 const NOTION_PAGE_ID = "<YOUR_NOTION_PAGE_ID>";
 
+// Notion 支援的程式語言列表
+const NOTION_LANGUAGES = new Set([
+  "abap",
+  "abc",
+  "agda",
+  "arduino",
+  "ascii art",
+  "assembly",
+  "bash",
+  "basic",
+  "bnf",
+  "c",
+  "c#",
+  "c++",
+  "clojure",
+  "coffeescript",
+  "coq",
+  "css",
+  "dart",
+  "dhall",
+  "diff",
+  "docker",
+  "ebnf",
+  "elixir",
+  "elm",
+  "erlang",
+  "f#",
+  "flow",
+  "fortran",
+  "gherkin",
+  "glsl",
+  "go",
+  "graphql",
+  "groovy",
+  "haskell",
+  "hcl",
+  "html",
+  "idris",
+  "java",
+  "javascript",
+  "json",
+  "julia",
+  "kotlin",
+  "latex",
+  "less",
+  "lisp",
+  "livescript",
+  "llvm ir",
+  "lua",
+  "makefile",
+  "markdown",
+  "markup",
+  "matlab",
+  "mathematica",
+  "mermaid",
+  "nix",
+  "notion formula",
+  "objective-c",
+  "ocaml",
+  "pascal",
+  "perl",
+  "php",
+  "plain text",
+  "powershell",
+  "prolog",
+  "protobuf",
+  "purescript",
+  "python",
+  "r",
+  "racket",
+  "reason",
+  "ruby",
+  "rust",
+  "sass",
+  "scala",
+  "scheme",
+  "scss",
+  "shell",
+  "smalltalk",
+  "solidity",
+  "sql",
+  "swift",
+  "toml",
+  "typescript",
+  "vb.net",
+  "verilog",
+  "vhdl",
+  "visual basic",
+  "webassembly",
+  "xml",
+  "yaml",
+]);
+
+/**
+ * 將訊息元素 el 的內容轉成 Notion blocks
+ */
+function htmlToBlocksFromElement(el) {
+  const blocks = [];
+  // 只抓表格、分隔線、標題、段落、引言、清單、以及帶 language- 的 code block
+  const nodes = el.querySelectorAll(
+    "table,hr,h1,h2,h3,h4,h5,h6,p,blockquote,ul,ol,li,code[class*='language-']"
+  );
+
+  nodes.forEach((node) => {
+    const tag = node.nodeName;
+
+    // 跳過所有沒有指定 language- 的 inline <code>
+    if (
+      tag === "CODE" &&
+      !Array.from(node.classList).some((c) => c.startsWith("language-"))
+    ) {
+      return;
+    }
+
+    // 1) 表格
+    if (tag === "TABLE") {
+      const headerEls = node.querySelectorAll("thead tr th");
+      const headers = Array.from(headerEls).map((th) => th.textContent.trim());
+      const bodyRows = node.querySelectorAll("tbody tr");
+      const children = [];
+
+      // 標題列
+      children.push({
+        object: "block",
+        type: "table_row",
+        table_row: {
+          cells: headers.map((txt) => [
+            { type: "text", text: { content: txt } },
+          ]),
+        },
+      });
+      // 資料列
+      bodyRows.forEach((tr) => {
+        const cells = Array.from(tr.querySelectorAll("td")).map((td) =>
+          td.textContent.trim()
+        );
+        children.push({
+          object: "block",
+          type: "table_row",
+          table_row: {
+            cells: cells.map((txt) => [
+              { type: "text", text: { content: txt } },
+            ]),
+          },
+        });
+      });
+
+      blocks.push({
+        object: "block",
+        type: "table",
+        table: {
+          table_width: headers.length,
+          has_column_header: true,
+          has_row_header: false,
+          children,
+        },
+      });
+      return;
+    }
+
+    // 2) 分隔線
+    if (tag === "HR") {
+      blocks.push({ object: "block", type: "divider", divider: {} });
+      return;
+    }
+
+    // 3) 語法區塊 (code)：把所有 segment 合併到同一個 code block 裡（每段 ≤2000 字）
+    if (
+      tag === "CODE" &&
+      Array.from(node.classList).some((c) => c.startsWith("language-"))
+    ) {
+      // 取得語言，若不支援就降為 plain text
+      let lang = Array.from(node.classList)
+        .find((c) => c.startsWith("language-"))
+        .replace(/^language-/, "")
+        .toLowerCase();
+      if (lang === "js") lang = "javascript";
+      if (!NOTION_LANGUAGES.has(lang)) lang = "plain text";
+
+      // 將整段程式切成 ≤2000 字的 segment
+      const codeText = node.textContent;
+      const segments = [];
+      let seg = "";
+      for (const line of codeText.split("\n")) {
+        if (seg.length + line.length + 1 > 2000) {
+          segments.push(seg);
+          seg = "";
+        }
+        seg += (seg ? "\n" : "") + line;
+      }
+      if (seg) segments.push(seg);
+
+      // 送出單一 code block，rich_text 用多個 fragment 包覆各 segment
+      blocks.push({
+        object: "block",
+        type: "code",
+        code: {
+          language: lang,
+          rich_text: segments.map((text) => ({
+            type: "text",
+            text: { content: text },
+          })),
+        },
+      });
+      return;
+    }
+
+    // 4) 跳過列表容器
+    if (tag === "UL" || tag === "OL") return;
+
+    // 5) 列表項目
+    if (tag === "LI") {
+      const directP = node.querySelector(":scope > p");
+      const txt = directP
+        ? directP.textContent.trim()
+        : node.textContent.trim();
+      if (!txt) return;
+      const listType =
+        node.parentElement.nodeName === "OL"
+          ? "numbered_list_item"
+          : "bulleted_list_item";
+      blocks.push({
+        object: "block",
+        type: listType,
+        [listType]: {
+          rich_text: [{ type: "text", text: { content: txt } }],
+        },
+      });
+      return;
+    }
+
+    // 6) 跳過列表內的 <p>
+    if (tag === "P" && node.closest("li")) return;
+
+    // 7) 其他文字節點
+    const txt = node.textContent.trim();
+    if (!txt) return;
+
+    switch (tag) {
+      case "H1":
+        blocks.push(makeHeading("heading_1", txt));
+        break;
+      case "H2":
+        blocks.push(makeHeading("heading_2", txt));
+        break;
+      case "H3":
+      case "H4":
+      case "H5":
+      case "H6":
+        blocks.push(makeHeading("heading_3", txt));
+        break;
+      case "BLOCKQUOTE":
+        blocks.push({
+          object: "block",
+          type: "quote",
+          quote: { rich_text: [{ type: "text", text: { content: txt } }] },
+        });
+        break;
+      case "P":
+      default:
+        blocks.push({
+          object: "block",
+          type: "paragraph",
+          paragraph: { rich_text: [{ type: "text", text: { content: txt } }] },
+        });
+        break;
+    }
+  });
+
+  return blocks;
+}
+
+/** 標題 helper */
+function makeHeading(type, text) {
+  return {
+    object: "block",
+    type,
+    [type]: { rich_text: [{ type: "text", text: { content: text } }] },
+  };
+}
+
+/** 程式碼 helper */
+function makeCodeBlock(codeText, language) {
+  return {
+    object: "block",
+    type: "code",
+    code: {
+      language,
+      rich_text: [{ type: "text", text: { content: codeText } }],
+    },
+  };
+}
+
 /**
  * 只保留形如 https://chatgpt.com/c/{uuid} 的 URL
  * 若當前在 /g/.../c/...，也會萃取後半段
@@ -321,46 +614,89 @@ function createNotebookButton(msg) {
   icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
   btn.appendChild(icon);
 
+  // 狀態 flag：是否在等待復原期間
+  let disabled = false;
+
   btn.addEventListener("click", async () => {
+    if (disabled) return; // 若還在 3 秒內，直接忽略
+    disabled = true;
+
+    // 先將 icon 換成 check，再 3 秒後還原
     icon.src = chrome.runtime.getURL(CHECK_ICON);
 
-    // 讀取 Integration Token 與 Page ID
+    // 1. 讀 page URL
+    const pageUrl = getCleanChatUrl(window.location.href);
+
+    // 2. 建一組新的 blocks：先 divider，再 pageUrl，最後才是內容
+    const blocks = [];
+
+    // 分隔線
+    blocks.push({
+      object: "block",
+      type: "divider",
+      divider: {},
+    });
+
+    // 網址段落（帶 link）
+    blocks.push({
+      object: "block",
+      type: "paragraph",
+      paragraph: {
+        rich_text: [
+          {
+            type: "text",
+            text: {
+              content: pageUrl,
+              link: { url: pageUrl },
+            },
+          },
+        ],
+      },
+    });
+
+    // 3) 根據作者身分決定後續 block
+    const role = msg.dataset.messageAuthorRole; // "user" or "assistant"
+    if (role === "user") {
+      // 使用者訊息：只需要純文字 paragraph
+      const rawText = msg.innerText.trim();
+      blocks.push({
+        object: "block",
+        type: "paragraph",
+        paragraph: {
+          rich_text: [{ type: "text", text: { content: rawText } }],
+        },
+      });
+    } else {
+      // GPT 訊息：用 htmlToBlocksFromElement 解析 heading/code/paragraph
+      blocks.push(...htmlToBlocksFromElement(msg));
+    }
+
+    console.log(">>> content.js 最終送出的 blocks:", blocks);
+
     chrome.storage.local.get(
       ["notion-integration-token", "notion-page-id"],
       ({ "notion-integration-token": token, "notion-page-id": pageId }) => {
-        // 若 Token 缺失
-        if (!token) {
-          alert("請先在設定頁輸入 Notion Integration Token");
+        if (!token || !pageId) {
+          alert("請先設定 Notion Token & Page ID");
           icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
-          return;
-        }
-        // 若 Page ID 缺失
-        if (!pageId) {
-          alert("請先在設定頁輸入 Notion Page ID");
-          icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
+          disabled = false;
           return;
         }
 
-        // 準備 Markdown
-        const pageUrl = getCleanChatUrl(window.location.href);
-        const rawText = msg.innerText.trim();
-        const markdown = ["---", pageUrl, "", rawText].join("\n");
-
-        // 正式送出給 background 去呼叫 Notion API
+        // 送出到 background
         chrome.runtime.sendMessage(
-          { action: "saveToNotion", markdown, pageId },
+          { action: "appendBlocks", pageId, blocks },
           (res) => {
-            if (!res?.success) {
-              icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
-              alert(`Notion 連接錯誤：請檢查 Token 或 Page ID`);
+            if (!res.success) {
+              alert(`Notion 連線失敗：${res.error}`);
             }
+            // 3 秒後還原 Icon
+            setTimeout(() => {
+              icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
+              disabled = false;
+            }, 3000);
           }
         );
-
-        // 3 秒後還原筆記圖示
-        setTimeout(() => {
-          icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
-        }, 3000);
       }
     );
   });
