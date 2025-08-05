@@ -1,139 +1,227 @@
-console.log("ChatGPT Bookmark 插件已載入！");
+// ========== 全域常數與工具 ==========
 
-// ---------- 編輯下 Enter 雙擊送出功能 ----------
-let sendButton = null;
-let enterPressCount = 0;
-let enterPressTimer = null;
-const DOUBLE_CLICK_DELAY = 200; // 雙擊的延遲時間（毫秒）
-
-// 檢查目前事件目標是否為 ChatGPT 的輸入框
-function isChatInput(target) {
-  if (target.tagName === "TEXTAREA") return true;
-  if (target.role === "textbox" && target.dataset.testid === "text-input")
-    return true;
-  if (target.classList.contains("grow-wrap")) return true;
-  if (target.matches("div.flex-grow.relative > div > textarea")) return true;
-  return false;
-}
-
-// 判斷是否處在「編輯回覆」模式
-function isEditingMode() {
-  const editSendButton = document.querySelector(
-    "button.btn.relative.btn-primary"
-  );
-  return !!editSendButton;
-}
-
-// 嘗試在各種可能的地方找到「送出」按鈕
-function findSendButton() {
-  // 優先使用 data-testid
-  let button = document.querySelector('[data-testid="send-button"]');
-  if (button) return button;
-  // 再依次嘗試常見按鈕樣式
-  button = document.querySelector("button.btn.relative.btn-primary");
-  if (button) return button;
-  button = document.querySelector('button[aria-label="Send message"]');
-  if (button) return button;
-  button = document.querySelector('button[aria-label="Send"]');
-  if (button) return button;
-  // 最後掃描所有 button，找文字包含「傳送」或「Save & Submit」
-  const buttons = document.querySelectorAll("button");
-  for (const btn of buttons) {
-    if (
-      btn.textContent.includes("傳送") ||
-      btn.textContent.includes("Save & Submit")
-    ) {
-      return btn;
-    }
-  }
-  return null;
-}
-
-// 在指定的輸入框中插入換行符
-function insertNewline(targetElement) {
-  if (targetElement) {
-    const start = targetElement.selectionStart;
-    const end = targetElement.selectionEnd;
-    const text = targetElement.value;
-    targetElement.value = text.substring(0, start) + "\n" + text.substring(end);
-    targetElement.selectionStart = targetElement.selectionEnd = start + 1;
-    const event = new Event("input", { bubbles: true });
-    targetElement.dispatchEvent(event);
-  }
-}
-
-// 處理全域的 keydown 事件
-function handleKeyDown(event) {
-  const currentInputTarget = event.target;
-  if (isChatInput(currentInputTarget)) {
-    const inEditingMode = isEditingMode();
-    // Shift+Enter 一律換行
-    if (event.key === "Enter" && event.shiftKey) {
-      event.preventDefault();
-      insertNewline(currentInputTarget);
-      enterPressCount = 0;
-      clearTimeout(enterPressTimer);
-      enterPressTimer = null;
-      return;
-    }
-
-    // 僅在編輯模式下應用單擊換行、雙擊發送的邏輯
-    if (inEditingMode) {
-      // 處理 Enter 鍵按下，且非輸入法選字狀態
-      if (event.key === "Enter" && !event.isComposing) {
-        event.preventDefault();
-        enterPressCount++;
-
-        if (enterPressCount === 1) {
-          // 第一次按下 Enter，啟動計時器判斷是否為單擊
-          enterPressTimer = setTimeout(() => {
-            if (enterPressCount === 1) {
-              console.log("ChatGPT：編輯模式 - 單擊Enter（換行）。");
-              insertNewline(currentInputTarget);
-            }
-            enterPressCount = 0;
-            enterPressTimer = null;
-          }, DOUBLE_CLICK_DELAY);
-        } else if (enterPressCount === 2) {
-          // 第二次按下 Enter（在延遲時間內），執行發送操作
-          clearTimeout(enterPressTimer);
-          enterPressCount = 0;
-          enterPressTimer = null;
-
-          sendButton = findSendButton();
-          if (sendButton) {
-            sendButton.click();
-            console.log("ChatGPT：編輯模式 - 雙擊Enter（發送）。");
-          } else {
-            console.warn("ChatGPT：編輯模式 - 未找到發送按鈕。請檢查插件。");
-          }
-        }
-      }
-    } else {
-      enterPressCount = 0;
-      clearTimeout(enterPressTimer);
-      enterPressTimer = null;
-    }
-  } else {
-    enterPressCount = 0;
-    clearTimeout(enterPressTimer);
-    enterPressTimer = null;
-  }
-}
-
-// 將鍵盤事件監聽器添加到整個文檔
-document.addEventListener("keydown", handleKeyDown);
-
-// ---------- 書籤功能 ----------
-const SCAN_INTERVAL = 2000; // 動態載入的掃描間隔（毫秒）
 const EMPTY_ICON = "assets/icons/bookmarks.svg";
 const FILL_ICON = "assets/icons/bookmarks-fill.svg";
 const NOTEBOOK_ICON = "assets/icons/notion.svg";
 const CHECK_ICON = "assets/icons/check.svg";
-const NOTION_PAGE_ID = "<YOUR_NOTION_PAGE_ID>";
 
-// Notion 支援的程式語言列表
-const NOTION_LANGUAGES = new Set([
+// ----- 時間相關常數 -----
+const SCAN_INTERVAL = 2000; // 動態掃描訊息（ms）
+const DOUBLE_CLICK_DELAY = 200; // Enter 雙擊間隔（ms）
+
+console.log("ChatGPT Bookmark content script loaded! 🚀");
+
+// ----- 主題工具 -----
+function isDark() {
+  return document.documentElement.classList.contains("dark");
+}
+function getHoverBgColor() {
+  return isDark() ? "#303030" : "#E8E8E8";
+}
+function getIconFilter() {
+  return isDark() ? "brightness(0) invert(1)" : "brightness(0)";
+}
+
+// ----- 路徑工具 -----
+function normalizePath(p) {
+  p = p.replace(/\/$/, "");
+  const m = p.match(/^\/g\/[^/]+\/c\/([^/]+)$/);
+  return m ? `/c/${m[1]}` : p;
+}
+function getCurrentChatKey() {
+  const p = normalizePath(location.pathname);
+  if (p === "/c" || /^\/g\/[^/]+\/c$/.test(location.pathname)) return null;
+  return p;
+}
+function getCleanChatUrl(raw) {
+  const m = raw.match(
+    /(https?:\/\/chatgpt\.com)\/(?:g\/[^\/]+\/)?(c\/[0-9a-fA-F-]+)/
+  );
+  return m ? `${m[1]}/${m[2]}` : raw;
+}
+
+// ========== 編輯模式下雙擊 Enter 送出 ==========
+
+(() => {
+  let enterCount = 0;
+  let timer = null;
+  let sendBtn = null;
+
+  // 判斷是否在輸入框
+  function isChatInput(el) {
+    if (!el) return false;
+    if (el.tagName === "TEXTAREA") return true;
+    if (el.role === "textbox" && el.dataset.testid === "text-input")
+      return true;
+    if (el.classList.contains("grow-wrap")) return true;
+    return el.matches?.("div.flex-grow.relative > div > textarea");
+  }
+
+  // 是否處於編輯模式
+  function isEditingMode() {
+    return !!document.querySelector("button.btn.relative.btn-primary");
+  }
+
+  // 找到各種可能送出按鈕
+  function findSendButton() {
+    return (
+      document.querySelector('[data-testid="send-button"]') ||
+      document.querySelector("button.btn.relative.btn-primary") ||
+      document.querySelector('button[aria-label="Send message"]') ||
+      document.querySelector('button[aria-label="Send"]') ||
+      Array.from(document.querySelectorAll("button")).find((b) =>
+        ["傳送", "Save & Submit"].some((txt) => b.textContent.includes(txt))
+      )
+    );
+  }
+
+  // 插入換行
+  function insertNewline(textarea) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const txt = textarea.value;
+    textarea.value = txt.substring(0, start) + "\n" + txt.substring(end);
+    textarea.selectionStart = textarea.selectionEnd = start + 1;
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+
+  // 全域 keydown
+  document.addEventListener("keydown", (e) => {
+    if (!isChatInput(e.target)) {
+      enterCount = 0;
+      clearTimeout(timer);
+      return;
+    }
+
+    const editing = isEditingMode();
+
+    // Shift + Enter 一律換行
+    if (e.key === "Enter" && e.shiftKey) {
+      e.preventDefault();
+      insertNewline(e.target);
+      return;
+    }
+
+    // 只有編輯模式才需要雙擊送出
+    if (!editing || e.key !== "Enter" || e.isComposing) return;
+
+    e.preventDefault();
+    enterCount++;
+
+    if (enterCount === 1) {
+      timer = setTimeout(() => {
+        // 單擊 Enter 換行
+        insertNewline(e.target);
+        enterCount = 0;
+      }, DOUBLE_CLICK_DELAY);
+    } else if (enterCount === 2) {
+      clearTimeout(timer);
+      enterCount = 0;
+      sendBtn = findSendButton();
+      if (sendBtn) {
+        sendBtn.click();
+      } else {
+        console.warn("GPT‑mark 找不到送出按鈕！");
+      }
+    }
+  });
+})();
+
+// ========== 書籤功能 ==========
+
+const STORAGE = chrome.storage.local;
+
+// ----- 書籤資料存取 -----
+function fetchBookmarks(cb) {
+  const key = getCurrentChatKey();
+  STORAGE.get([key], (res) => cb(res[key] || []));
+}
+function saveBookmarks(list) {
+  const key = getCurrentChatKey();
+  STORAGE.set({ [key]: list });
+}
+function isBookmarked(id, list) {
+  return list.some((i) => i.id === id);
+}
+function toggleBookmark(id, content, role, cb) {
+  fetchBookmarks((list) => {
+    const updated = isBookmarked(id, list)
+      ? list.filter((i) => i.id !== id)
+      : [...list, { id, content, role }];
+    saveBookmarks(updated);
+    cb?.(updated);
+  });
+}
+
+// ----- 建立書籤按鈕 -----
+function createBookmarkButton(msgEl) {
+  const id = msgEl.dataset.messageId;
+  if (
+    !id ||
+    document.querySelector(`.chatgpt-bookmark-btn[data-bookmark-id="${id}"]`)
+  )
+    return null;
+
+  const btn = document.createElement("button");
+  btn.className = "chatgpt-bookmark-btn";
+  btn.title = "書籤";
+  btn.dataset.bookmarkId = id;
+  Object.assign(btn.style, {
+    width: "32px",
+    height: "32px",
+    background: "transparent",
+    border: "none",
+    borderRadius: "8px",
+    padding: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    cursor: "pointer",
+    transition: "background-color .2s",
+  });
+
+  const icon = document.createElement("img");
+  Object.assign(icon.style, {
+    width: "16px",
+    height: "16px",
+    pointerEvents: "none",
+    filter: getIconFilter(),
+  });
+  btn.appendChild(icon);
+
+  // 初始狀態
+  fetchBookmarks((list) => {
+    icon.src = chrome.runtime.getURL(
+      isBookmarked(id, list) ? FILL_ICON : EMPTY_ICON
+    );
+  });
+
+  // 點擊事件
+  btn.addEventListener("click", () => {
+    const content = msgEl.innerText.trim();
+    const role = msgEl.dataset.messageAuthorRole || "unknown";
+    toggleBookmark(id, content, role, (updated) => {
+      icon.src = chrome.runtime.getURL(
+        isBookmarked(id, updated) ? FILL_ICON : EMPTY_ICON
+      );
+    });
+  });
+  btn.addEventListener(
+    "mouseenter",
+    () => (btn.style.backgroundColor = getHoverBgColor())
+  );
+  btn.addEventListener(
+    "mouseleave",
+    () => (btn.style.backgroundColor = "transparent")
+  );
+
+  return btn;
+}
+
+// ========== Notion 筆記功能 ==========
+
+// ----- code block 支援語言 -----
+const NOTION_CODE_LANGUAGES = new Set([
   "abap",
   "abc",
   "agda",
@@ -225,31 +313,71 @@ const NOTION_LANGUAGES = new Set([
   "yaml",
 ]);
 
-/**
- * 將訊息元素 el 的內容轉成 Notion blocks
- */
+// ----- HTML 轉 Notion Blocks (GPT 訊息用) -----
 function htmlToBlocksFromElement(el) {
   const blocks = [];
-  // 只抓表格、分隔線、標題、段落、引言、清單、以及帶 language- 的 code block
   const nodes = el.querySelectorAll(
-    "table,hr,h1,h2,h3,h4,h5,h6,p,blockquote,ul,ol,li,code[class*='language-']"
+    "table,hr,h1,h2,h3,h4,h5,h6,p,blockquote,ul,ol,li,pre,code[class*='language-']"
   );
 
   nodes.forEach((node) => {
     const tag = node.nodeName;
 
-    // 跳過所有沒有指定 language- 的 inline <code>
-    if (
-      tag === "CODE" &&
-      !Array.from(node.classList).some((c) => c.startsWith("language-"))
-    ) {
+    // (2.5) 處理 <pre> 區塊（有時候 code block 是 <pre><code>…</code></pre>）
+    if (tag === "PRE") {
+      // 取出裡面的 code 或直接用 textContent
+      const codeNode = node.querySelector("code");
+      let codeText = codeNode ? codeNode.textContent : node.textContent;
+      let lang = "plain text";
+      if (codeNode) {
+        // 如果 <code> 有 language-xxx，取出並轉小寫
+        const cls = Array.from(codeNode.classList).find((c) =>
+          c.startsWith("language-")
+        );
+        if (cls) {
+          lang = cls.replace(/^language-/, "").toLowerCase();
+          if (lang === "js") lang = "javascript";
+          if (!NOTION_CODE_LANGUAGES.has(lang)) lang = "plain text";
+        }
+      }
+      // 同樣做 2000 字切段
+      const segments = [];
+      let buf = "";
+      codeText.split("\n").forEach((line) => {
+        if (buf.length + line.length + 1 > 2000) {
+          segments.push(buf);
+          buf = "";
+        }
+        buf += (buf ? "\n" : "") + line;
+      });
+      if (buf) segments.push(buf);
+
+      blocks.push({
+        object: "block",
+        type: "code",
+        code: {
+          language: lang,
+          rich_text: segments.map((txt) => ({
+            type: "text",
+            text: { content: txt },
+          })),
+        },
+      });
       return;
     }
 
-    // 1) 表格
+    // (1) inline code (未指定語言) 跳過
+    if (
+      tag === "CODE" &&
+      !Array.from(node.classList).some((c) => c.startsWith("language-"))
+    )
+      return;
+
+    // (2) 表格
     if (tag === "TABLE") {
-      const headerEls = node.querySelectorAll("thead tr th");
-      const headers = Array.from(headerEls).map((th) => th.textContent.trim());
+      const headers = Array.from(node.querySelectorAll("thead tr th")).map(
+        (th) => th.textContent.trim()
+      );
       const bodyRows = node.querySelectorAll("tbody tr");
       const children = [];
 
@@ -258,9 +386,7 @@ function htmlToBlocksFromElement(el) {
         object: "block",
         type: "table_row",
         table_row: {
-          cells: headers.map((txt) => [
-            { type: "text", text: { content: txt } },
-          ]),
+          cells: headers.map((t) => [{ type: "text", text: { content: t } }]),
         },
       });
       // 資料列
@@ -272,9 +398,7 @@ function htmlToBlocksFromElement(el) {
           object: "block",
           type: "table_row",
           table_row: {
-            cells: cells.map((txt) => [
-              { type: "text", text: { content: txt } },
-            ]),
+            cells: cells.map((t) => [{ type: "text", text: { content: t } }]),
           },
         });
       });
@@ -292,62 +416,59 @@ function htmlToBlocksFromElement(el) {
       return;
     }
 
-    // 2) 分隔線
+    // (3) 分隔線
     if (tag === "HR") {
       blocks.push({ object: "block", type: "divider", divider: {} });
       return;
     }
 
-    // 3) 語法區塊 (code)：把所有 segment 合併到同一個 code block 裡（每段 ≤2000 字）
+    // (4) 程式碼區塊
     if (
       tag === "CODE" &&
       Array.from(node.classList).some((c) => c.startsWith("language-"))
     ) {
-      // 取得語言，若不支援就降為 plain text
+      if (node.closest("pre")) return;
       let lang = Array.from(node.classList)
         .find((c) => c.startsWith("language-"))
         .replace(/^language-/, "")
         .toLowerCase();
       if (lang === "js") lang = "javascript";
-      if (!NOTION_LANGUAGES.has(lang)) lang = "plain text";
+      if (!NOTION_CODE_LANGUAGES.has(lang)) lang = "plain text";
 
-      // 將整段程式切成 ≤2000 字的 segment
+      // code block 最多 2000 字切段
       const codeText = node.textContent;
       const segments = [];
-      let seg = "";
-      for (const line of codeText.split("\n")) {
-        if (seg.length + line.length + 1 > 2000) {
-          segments.push(seg);
-          seg = "";
+      let buf = "";
+      codeText.split("\n").forEach((line) => {
+        if (buf.length + line.length + 1 > 2000) {
+          segments.push(buf);
+          buf = "";
         }
-        seg += (seg ? "\n" : "") + line;
-      }
-      if (seg) segments.push(seg);
+        buf += (buf ? "\n" : "") + line;
+      });
+      if (buf) segments.push(buf);
 
-      // 送出單一 code block，rich_text 用多個 fragment 包覆各 segment
       blocks.push({
         object: "block",
         type: "code",
         code: {
           language: lang,
-          rich_text: segments.map((text) => ({
+          rich_text: segments.map((txt) => ({
             type: "text",
-            text: { content: text },
+            text: { content: txt },
           })),
         },
       });
       return;
     }
 
-    // 4) 跳過列表容器
+    // (5) 跳過列表容器本身
     if (tag === "UL" || tag === "OL") return;
 
-    // 5) 列表項目
+    // (6) 列表項目
     if (tag === "LI") {
-      const directP = node.querySelector(":scope > p");
-      const txt = directP
-        ? directP.textContent.trim()
-        : node.textContent.trim();
+      const p = node.querySelector(":scope > p");
+      const txt = (p ? p.textContent : node.textContent).trim();
       if (!txt) return;
       const listType =
         node.parentElement.nodeName === "OL"
@@ -363,10 +484,10 @@ function htmlToBlocksFromElement(el) {
       return;
     }
 
-    // 6) 跳過列表內的 <p>
+    // (7) 列表內段落 <p> 不重複處理
     if (tag === "P" && node.closest("li")) return;
 
-    // 7) 其他文字節點
+    // (8) 其他文字節點
     const txt = node.textContent.trim();
     if (!txt) return;
 
@@ -390,218 +511,52 @@ function htmlToBlocksFromElement(el) {
           quote: { rich_text: [{ type: "text", text: { content: txt } }] },
         });
         break;
-      case "P":
       default:
         blocks.push({
           object: "block",
           type: "paragraph",
           paragraph: { rich_text: [{ type: "text", text: { content: txt } }] },
         });
-        break;
     }
   });
 
   return blocks;
 }
-
-/** 標題 helper */
 function makeHeading(type, text) {
   return {
     object: "block",
     type,
-    [type]: { rich_text: [{ type: "text", text: { content: text } }] },
-  };
-}
-
-/** 程式碼 helper */
-function makeCodeBlock(codeText, language) {
-  return {
-    object: "block",
-    type: "code",
-    code: {
-      language,
-      rich_text: [{ type: "text", text: { content: codeText } }],
+    [type]: {
+      rich_text: [{ type: "text", text: { content: text } }],
     },
   };
 }
 
-/**
- * 只保留形如 https://chatgpt.com/c/{uuid} 的 URL
- * 若當前在 /g/.../c/...，也會萃取後半段
- */
-function getCleanChatUrl(rawUrl) {
-  const m = rawUrl.match(
-    /(https?:\/\/chatgpt\.com)\/(?:g\/[^\/]+\/)?(c\/[0-9a-fA-F-]+)/
-  );
-  return m ? `${m[1]}/${m[2]}` : rawUrl;
-}
-
-// 將任意 /g/.../c/<chatId> 或 /c/<chatId>/ 統一為 /c/<chatId>
-function normalizePath(p) {
-  p = p.replace(/\/$/, ""); // 去掉尾斜線
-  const m = p.match(/^\/g\/[^/]+\/c\/([^/]+)$/); // 群組頁面格式
-  if (m) return `/c/${m[1]}`; // 取出 chatId
-  return p;
-}
-
-// 回傳目前聊天室的 storage key（或 null）
-function getCurrentChatKey() {
-  const p = normalizePath(window.location.pathname);
-  // 只有 /c（列表頁）或 /g/.../c（還沒展開 chatId）時先不寫入
-  if (p === "/c" || /^\/g\/[^/]+\/c$/.test(window.location.pathname))
-    return null;
-  return p;
-}
-
-// ---- 舊資料一次性搬家：把 /g/.../c/<id> → /c/<id> ----
-chrome.storage.local.get(null, (all) => {
-  Object.entries(all).forEach(([k, v]) => {
-    const m = k.match(/^\/g\/[^/]+\/c\/([^/]+)\/?$/);
-    if (m) {
-      const target = `/c/${m[1]}`;
-      if (!(target in all)) {
-        chrome.storage.local.set({ [target]: v }, () =>
-          chrome.storage.local.remove(k)
-        );
-      }
-    }
-  });
-});
-
-// 從 chrome.storage.local 拿到當前聊天室的所有書籤
-function fetchBookmarks(cb) {
-  const key = getCurrentChatKey();
-  chrome.storage.local.get([key], (res) => cb(res[key] || []));
-}
-
-// 將書籤列表存回 local storage
-function saveBookmarks(list) {
-  const key = getCurrentChatKey();
-  chrome.storage.local.set({ [key]: list });
-}
-
-//判斷訊息是否已是書籤
-function isBookmarked(id, list) {
-  return list.some((item) => item.id === id);
-}
-
-// 切換書籤：若已存在就移除，否則新增
-function toggleBookmark(id, content, role, cb) {
-  fetchBookmarks((list) => {
-    const updated = isBookmarked(id, list)
-      ? list.filter((item) => item.id !== id) // 移除
-      : [...list, { id, content, role }]; // 加入
-    saveBookmarks(updated);
-    if (cb) cb(updated);
-  });
-}
-
-// 根據主題回傳背景顏色
-function getHoverBgColor() {
-  return document.documentElement.classList.contains("dark")
-    ? "#303030"
-    : "#E8E8E8";
-}
-
-// 根據主題回傳 icon 濾鏡
-function getIconFilter() {
-  return document.documentElement.classList.contains("dark")
-    ? "brightness(0) invert(1)"
-    : "brightness(0)";
-}
-
-// 建立書籤按鈕
-function createBookmarkButton(msg) {
-  const id = msg.dataset.messageId;
-  // 已有或無 id 都不再處理
-  if (
-    !id ||
-    document.querySelector(`.chatgpt-bookmark-btn[data-bookmark-id="${id}"]`)
-  ) {
-    return null;
-  }
-
-  // 按鈕基本樣式
-  const btn = document.createElement("button");
-  btn.className = "chatgpt-bookmark-btn";
-  btn.title = "書籤";
-  btn.setAttribute("data-bookmark-id", id);
-  Object.assign(btn.style, {
-    width: "32px",
-    height: "32px",
-    background: "transparent",
-    border: "none",
-    borderRadius: "8px",
-    padding: "0",
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    cursor: "pointer",
-    transition: "background-color 0.2s",
-  });
-
-  // 建立 icon 根據是否已書籤設定圖示
-  const icon = document.createElement("img");
-  Object.assign(icon.style, {
-    width: "16px",
-    height: "16px",
-    pointerEvents: "none",
-    filter: getIconFilter(),
-  });
-  btn.appendChild(icon);
-
-  // 初始設定圖示狀態
-  fetchBookmarks((list) => {
-    const file = isBookmarked(id, list) ? FILL_ICON : EMPTY_ICON;
-    icon.src = chrome.runtime.getURL(file);
-  });
-
-  // 點擊切換書籤
-  btn.addEventListener("click", () => {
-    const content = msg.innerText.trim();
-    const role = msg.dataset.messageAuthorRole || "unknown";
-    toggleBookmark(id, content, role, (updated) => {
-      const file = isBookmarked(id, updated) ? FILL_ICON : EMPTY_ICON;
-      icon.src = chrome.runtime.getURL(file);
-    });
-  });
-  btn.addEventListener(
-    "mouseenter",
-    () => (btn.style.backgroundColor = getHoverBgColor())
-  );
-  btn.addEventListener(
-    "mouseleave",
-    () => (btn.style.backgroundColor = "transparent")
-  );
-
-  return btn;
-}
-
-function createNotebookButton(msg) {
-  const id = msg.dataset.messageId;
+// ----- 建立 Notebook 按鈕 -----
+function createNotebookButton(msgEl) {
+  const id = msgEl.dataset.messageId;
   if (
     !id ||
     document.querySelector(`.chatgpt-notebook-btn[data-notebook-id="${id}"]`)
-  ) {
+  )
     return null;
-  }
 
   const btn = document.createElement("button");
   btn.className = "chatgpt-notebook-btn";
   btn.title = "筆記到 Notion";
-  btn.setAttribute("data-notebook-id", id);
+  btn.dataset.notebookId = id;
   Object.assign(btn.style, {
     width: "32px",
     height: "32px",
     background: "transparent",
     border: "none",
     borderRadius: "8px",
-    padding: "0",
+    padding: 0,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
     cursor: "pointer",
-    transition: "background-color 0.2s",
+    transition: "background-color .2s",
   });
 
   const icon = document.createElement("img");
@@ -614,306 +569,228 @@ function createNotebookButton(msg) {
   icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
   btn.appendChild(icon);
 
-  // 狀態 flag：是否在等待復原期間
   let disabled = false;
 
-  btn.addEventListener("click", async () => {
-    if (disabled) return; // 若還在 3 秒內，直接忽略
+  btn.addEventListener("click", () => {
+    if (disabled) return;
     disabled = true;
-
-    // 先將 icon 換成 check，再 3 秒後還原
     icon.src = chrome.runtime.getURL(CHECK_ICON);
 
-    // 1. 讀 page URL
-    const pageUrl = getCleanChatUrl(window.location.href);
-
-    // 2. 建一組新的 blocks：先 divider，再 pageUrl，最後才是內容
-    const blocks = [];
-
-    // 分隔線
-    blocks.push({
-      object: "block",
-      type: "divider",
-      divider: {},
-    });
-
-    // 網址段落（帶 link）
-    blocks.push({
-      object: "block",
-      type: "paragraph",
-      paragraph: {
-        rich_text: [
-          {
-            type: "text",
-            text: {
-              content: pageUrl,
-              link: { url: pageUrl },
+    const pageUrl = getCleanChatUrl(location.href);
+    const blocks = [
+      { object: "block", type: "divider", divider: {} },
+      {
+        object: "block",
+        type: "paragraph",
+        paragraph: {
+          rich_text: [
+            {
+              type: "text",
+              text: { content: pageUrl, link: { url: pageUrl } },
             },
-          },
-        ],
+          ],
+        },
       },
-    });
+    ];
 
-    // 3) 根據作者身分決定後續 block
-    const role = msg.dataset.messageAuthorRole; // "user" or "assistant"
+    // 根據作者角色加入內容
+    const role = msgEl.dataset.messageAuthorRole;
     if (role === "user") {
-      // 使用者訊息：只需要純文字 paragraph
-      const rawText = msg.innerText.trim();
       blocks.push({
         object: "block",
         type: "paragraph",
         paragraph: {
-          rich_text: [{ type: "text", text: { content: rawText } }],
+          rich_text: [
+            { type: "text", text: { content: msgEl.innerText.trim() } },
+          ],
         },
       });
     } else {
-      // GPT 訊息：用 htmlToBlocksFromElement 解析 heading/code/paragraph
-      blocks.push(...htmlToBlocksFromElement(msg));
+      blocks.push(...htmlToBlocksFromElement(msgEl));
     }
-
-    console.log(">>> content.js 最終送出的 blocks:", blocks);
 
     chrome.storage.local.get(
       ["notion-integration-token", "notion-page-id"],
       ({ "notion-integration-token": token, "notion-page-id": pageId }) => {
         if (!token || !pageId) {
           alert("請先設定 Notion Token & Page ID");
-          icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
-          disabled = false;
+          reset();
           return;
         }
-
-        // 送出到 background
         chrome.runtime.sendMessage(
           { action: "appendBlocks", pageId, blocks },
           (res) => {
             if (!res.success) {
-              alert(`Notion 連線失敗：${res.error}`);
+              if (res.error && res.error.includes("401")) {
+                alert("Notion 連線失敗：請檢查 Integration Token 或 Page ID");
+              } else {
+                alert(`Notion 連線失敗：${res.error}`);
+              }
+              reset();
             }
-            // 3 秒後還原 Icon
-            setTimeout(() => {
-              icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
-              disabled = false;
-            }, 3000);
           }
         );
       }
     );
+
+    function reset() {
+      setTimeout(() => {
+        icon.src = chrome.runtime.getURL(NOTEBOOK_ICON);
+        disabled = false;
+      }, 3000);
+    }
   });
 
-  btn.addEventListener("mouseenter", () => {
-    btn.style.backgroundColor = getHoverBgColor();
-  });
-  btn.addEventListener("mouseleave", () => {
-    btn.style.backgroundColor = "transparent";
-  });
+  btn.addEventListener(
+    "mouseenter",
+    () => (btn.style.backgroundColor = getHoverBgColor())
+  );
+  btn.addEventListener(
+    "mouseleave",
+    () => (btn.style.backgroundColor = "transparent")
+  );
 
   return btn;
 }
 
-// 嘗試將書籤按鈕注入到指定訊息
-function tryInjectButton(msg) {
-  const btn = createBookmarkButton(msg);
-  if (!btn) return;
+// ========== 滾動控制（定位 / 最上 / 最下） ==========
 
-  // 優先插在「複製按鈕」左側
-  const turn = msg.closest("article");
-  const copyBtn = turn?.querySelector(
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  // 定位到特定訊息並高亮
+  if (msg.type === "scrollToMessage") {
+    const el = document.querySelector(`[data-message-id="${msg.id}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      el.style.transition = "background-color 0.5s";
+      el.style.backgroundColor = "#ffff99";
+      setTimeout(() => (el.style.backgroundColor = ""), 1000);
+    }
+    sendResponse?.({ result: "scrolled" });
+  }
+
+  // 側邊欄按鈕：最上 / 最下
+  const container = document.querySelector("main div[class*='overflow-y']");
+  if (!container) return;
+
+  if (msg.type === "scroll-to-top") {
+    container.scrollTo({ top: 0, behavior: "smooth" });
+  } else if (msg.type === "scroll-to-bottom") {
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+  }
+});
+
+// ----- 提供訊息排序給側邊欄 -----
+chrome.runtime.onMessage.addListener((msg, _s, sendResp) => {
+  if (msg.type !== "getChatOrder") return;
+  const nodes = document.querySelectorAll(
+    '[data-message-author-role="user"][data-message-id],' +
+      '[data-message-author-role="assistant"][data-message-id]'
+  );
+  sendResp({
+    order: Array.from(nodes).map((n) => n.dataset.messageId),
+  });
+});
+
+// ========== 啟動流程：注入按鈕 / 監聽 DOM & 路由 / 主題變換 ==========
+
+function injectButtonsForMessage(msgEl) {
+  // 書籤
+  const bookmarkBtn = createBookmarkButton(msgEl);
+  if (!bookmarkBtn) return;
+
+  // 目標插入點：複製按鈕旁
+  const article = msgEl.closest("article");
+  const copyBtn = article?.querySelector(
     '[data-testid="copy-turn-action-button"]'
   );
-  if (copyBtn && copyBtn.parentNode) {
-    // 1. 插入 書籤 按鈕
-    copyBtn.parentNode.insertBefore(btn, copyBtn);
-    // 2. 再插入 Notebook 按鈕
-    const notebookBtn = createNotebookButton(msg);
-    if (notebookBtn) {
-      copyBtn.parentNode.insertBefore(notebookBtn, btn.nextSibling);
-    }
+
+  if (copyBtn?.parentNode) {
+    // 書籤
+    copyBtn.parentNode.insertBefore(bookmarkBtn, copyBtn);
+    // Notebook
+    const notebookBtn = createNotebookButton(msgEl);
+    notebookBtn &&
+      copyBtn.parentNode.insertBefore(notebookBtn, bookmarkBtn.nextSibling);
   } else {
-    // 複製按鈕還沒出現，500ms 後再嘗試一次
-    setTimeout(() => {
-      const delayed = turn?.querySelector(
-        '[data-testid="copy-turn-action-button"]'
-      );
-      if (delayed && delayed.parentNode) {
-        delayed.parentNode.insertBefore(btn, delayed);
-      }
-    }, 500);
+    // 複製按鈕還沒渲染好 等待後再試一次
+    setTimeout(() => injectButtonsForMessage(msgEl), 500);
   }
 }
 
-// 為目前頁面所有已渲染的訊息注入書籤按鈕
-function injectExistingBookmarks() {
+// 已有訊息
+function injectExisting() {
   document
     .querySelectorAll("[data-message-id]")
-    .forEach((msg) => tryInjectButton(msg));
+    .forEach(injectButtonsForMessage);
 }
 
-// 監聽新加入的 turn 節點，自動插入書籤按鈕
-function observeAllTurns() {
-  const observer = new MutationObserver((mutations) => {
-    for (const m of mutations) {
-      for (const node of m.addedNodes) {
-        if (!(node instanceof HTMLElement)) continue;
-        if (node.matches('[data-testid="copy-turn-action-button"]')) {
-          const turn = node.closest("article");
-          const msg = turn?.querySelector("[data-message-id]");
-          if (msg) tryInjectButton(msg);
-          continue;
-        }
-
-        const copyBtn = node.querySelector
-          ? node.querySelector('[data-testid="copy-turn-action-button"]')
-          : null;
-        if (copyBtn) {
-          const turn = copyBtn.closest("article");
-          const msg = turn?.querySelector("[data-message-id]");
-          if (msg) tryInjectButton(msg);
-          continue;
-        }
-
-        const msgNode = node.matches("[data-message-id]")
+// 動態訊息
+function observeTurns() {
+  const obs = new MutationObserver((muts) => {
+    muts.forEach((m) =>
+      m.addedNodes.forEach((node) => {
+        if (!(node instanceof HTMLElement)) return;
+        const msg = node.matches?.("[data-message-id]")
           ? node
-          : node.querySelector("[data-message-id]");
-        if (msgNode) {
-          const turn = msgNode.closest("article");
-          const btnArea = turn?.querySelector(
-            '[data-testid="copy-turn-action-button"]'
-          );
-          if (btnArea) tryInjectButton(msgNode);
-        }
-      }
-    }
+          : node.querySelector?.("[data-message-id]");
+        msg && injectButtonsForMessage(msg);
+      })
+    );
   });
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ["data-message-id"],
-  });
+  obs.observe(document.body, { childList: true, subtree: true });
 }
 
-// 更新所有書籤 icon 的濾鏡（配合主題切換）
-function updateBookmarkIcons() {
-  const filter = getIconFilter();
-  document
-    .querySelectorAll(".chatgpt-bookmark-btn img, .chatgpt-notebook-btn img")
-    .forEach((icon) => {
-      icon.style.filter = filter;
-    });
-}
-
-// 監聽 <html> class 變化（dark / light 切換）
-function observeMoodChange() {
-  const observer = new MutationObserver(() => {
-    updateBookmarkIcons();
+// 主題切換時更新 icon 濾鏡
+function observeTheme() {
+  const obs = new MutationObserver(() => {
+    const filter = getIconFilter();
+    document
+      .querySelectorAll(".chatgpt-bookmark-btn img, .chatgpt-notebook-btn img")
+      .forEach((img) => (img.style.filter = filter));
   });
-
-  observer.observe(document.documentElement, {
+  obs.observe(document.documentElement, {
     attributes: true,
     attributeFilter: ["class"],
   });
 }
 
-// ----- 啟動流程 -----
-// 等到整個頁面 load 完才開始注入與監聽
-window.addEventListener("load", () => {
-  injectExistingBookmarks();
-  observeAllTurns();
-  observeMoodChange();
-  setInterval(injectExistingBookmarks, SCAN_INTERVAL);
-});
-
-// ----- 路由變化偵測 -----
-(function (H) {
-  ["pushState", "replaceState"].forEach((type) => {
-    const orig = H[type];
-    H[type] = function () {
+// 路由變動 (pushState / replaceState / popstate)
+(function (Hist) {
+  ["pushState", "replaceState"].forEach((fn) => {
+    const orig = Hist[fn];
+    Hist[fn] = function () {
       const ret = orig.apply(this, arguments);
-      window.dispatchEvent(new Event("chatgpt-location-change"));
+      window.dispatchEvent(new Event("gptmark-location-change"));
       return ret;
     };
   });
 })(history);
 
 let lastPath = location.pathname;
-
-// 當路徑改變時，延遲注入並更新 icon
-function handleLocationChange() {
+function onRouteChange() {
   if (location.pathname === lastPath) return;
   lastPath = location.pathname;
   setTimeout(() => {
-    injectExistingBookmarks();
-    updateBookmarkIcons();
+    injectExisting();
+    fetchBookmarks((list) => {
+      document.querySelectorAll(".chatgpt-bookmark-btn").forEach((btn) => {
+        const id = btn.dataset.bookmarkId;
+        const icon = btn.firstElementChild;
+        icon.src = chrome.runtime.getURL(
+          isBookmarked(id, list) ? FILL_ICON : EMPTY_ICON
+        );
+      });
+    });
   }, 600);
 }
+window.addEventListener("gptmark-location-change", onRouteChange);
+window.addEventListener("popstate", onRouteChange);
 
-// 綁定自訂事件與 popstate
-window.addEventListener("chatgpt-location-change", handleLocationChange);
-window.addEventListener("popstate", handleLocationChange);
-
-function refreshBookmarkIcons() {
-  fetchBookmarks((list) => {
-    document.querySelectorAll(".chatgpt-bookmark-btn").forEach((btn) => {
-      const id = btn.dataset.bookmarkId;
-      const icon = btn.firstElementChild;
-      const file = isBookmarked(id, list) ? FILL_ICON : EMPTY_ICON;
-      icon.src = chrome.runtime.getURL(file);
-    });
-  });
-}
-
-function handleLocationChange() {
-  if (location.pathname === lastPath) return;
-  lastPath = location.pathname;
-  setTimeout(() => {
-    injectExistingBookmarks();
-    refreshBookmarkIcons();
-  }, 600);
-}
-
-// ----- 滾動到特定訊息並高亮提示 -----
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "scrollToMessage") {
-    const msgElem = document.querySelector(`[data-message-id="${message.id}"]`);
-    if (msgElem) {
-      msgElem.scrollIntoView({ behavior: "smooth", block: "start" });
-      msgElem.style.transition = "background-color 0.5s";
-      msgElem.style.backgroundColor = "#ffff99";
-      setTimeout(() => {
-        msgElem.style.backgroundColor = "";
-      }, 1000);
-    }
-    sendResponse({ result: "scrolled" });
-  }
+// -------- 啟動 --------
+window.addEventListener("load", () => {
+  injectExisting();
+  observeTurns();
+  observeTheme();
+  setInterval(injectExisting, SCAN_INTERVAL);
+  chrome.runtime.sendMessage({ type: "chatgpt-ready" });
 });
-
-// ----- 回應 sidebar 查詢訊息排序順序 -----
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "getChatOrder") {
-    const elems = document.querySelectorAll(
-      '[data-message-author-role="user"][data-message-id], [data-message-author-role="assistant"][data-message-id]'
-    );
-    const order = Array.from(elems).map((el) => el.dataset.messageId);
-    sendResponse({ order });
-  }
-});
-
-// ----- 滾動到最上/最下功能 -----
-chrome.runtime.onMessage.addListener((message) => {
-  const chatContainer = document.querySelector("main div[class*='overflow-y']");
-  if (!chatContainer) return;
-
-  if (message.type === "scroll-to-top") {
-    chatContainer.scrollTo({ top: 0, behavior: "smooth" });
-  }
-  if (message.type === "scroll-to-bottom") {
-    chatContainer.scrollTo({
-      top: chatContainer.scrollHeight,
-      behavior: "smooth",
-    });
-  }
-});
-
-// 啟動後告訴 sidebar 已準備好
-chrome.runtime.sendMessage({ type: "chatgpt-ready" });
