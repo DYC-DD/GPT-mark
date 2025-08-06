@@ -33,10 +33,26 @@
 }
 
 .logo {
+  display: flex;
+  align-items: center;
   font-weight: 600;
   font-size: 1rem;
-  color: white;
+  color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
+}
+
+.logo img {
+  height: 30px;
+  margin-right: 4px;
+  vertical-align: middle;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.logo:hover img,
+.logo:hover {
+  opacity: 1;
+  color: white;
 }
 
 .nav-links {
@@ -48,6 +64,7 @@
   color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
   font-weight: 500;
+  font-size: 1rem;
   transition: color 0.2s ease;
 }
 

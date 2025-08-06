@@ -1,6 +1,7 @@
 import React from "react";
 import chromeIcon from "../assets/chrome.svg";
 import githubIcon from "../assets/github.svg";
+import gptLogo from "../assets/GPT-pin-Photoroom.png";
 import "../styles/Header.css";
 
 const Header = () => {
@@ -9,6 +10,7 @@ const Header = () => {
       <header className="frosted-header">
         <div className="header-inner">
           <a href="#home" className="logo">
+            <img src={gptLogo} alt="GPT Mark Logo" />
             GPT Mark
           </a>
           <nav className="nav-links">
