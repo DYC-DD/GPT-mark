@@ -316,11 +316,232 @@ const NOTION_CODE_LANGUAGES = new Set([
 // ----- HTML 轉 Notion Blocks (GPT 訊息用) -----
 function htmlToBlocksFromElement(el) {
   const blocks = [];
+  const processedLists = new WeakSet();
+  const processedNodes = new WeakSet();
   const nodes = el.querySelectorAll(
     "table,hr,h1,h2,h3,h4,h5,h6,p,blockquote,ul,ol,li,pre,code[class*='language-']"
   );
 
+  // 將容器轉為 rich_text：保留 <a href> 連結
+  function buildRichTextFromNode(container) {
+    const segments = [];
+
+    function walk(node) {
+      if (!node) return;
+      if (node.nodeType === Node.TEXT_NODE) {
+        const text = node.textContent || "";
+        if (text.length)
+          segments.push({ type: "text", text: { content: text } });
+        return;
+      }
+      if (!(node instanceof HTMLElement)) return;
+
+      if (node.tagName === "A" && node.href) {
+        const linkText = node.textContent || node.href;
+        segments.push({
+          type: "text",
+          text: { content: linkText, link: { url: node.href } },
+        });
+        return;
+      }
+
+      Array.from(node.childNodes).forEach(walk);
+    }
+
+    walk(container);
+    const fallback = (container.textContent || "").trim();
+    return segments.length
+      ? segments
+      : fallback
+      ? [{ type: "text", text: { content: fallback } }]
+      : [];
+  }
+
+  // 將 <ul>/<ol> 轉為 Notion blocks，保留巢狀結構
+  function parseList(listEl) {
+    processedLists.add(listEl);
+    const listType =
+      listEl.nodeName === "OL" ? "numbered_list_item" : "bulleted_list_item";
+    const items = [];
+
+    const liNodes = Array.from(listEl.querySelectorAll(":scope > li"));
+    liNodes.forEach((li) => {
+      // 取得 li 主要文字（優先取直屬 <p>，避免包含子清單文字）
+      const p = li.querySelector(":scope > p");
+      let rich = [];
+      if (p) {
+        rich = buildRichTextFromNode(p);
+      } else {
+        // 取直屬內容（排除子清單）
+        const clone = li.cloneNode(true);
+        clone
+          .querySelectorAll(":scope > ul, :scope > ol")
+          .forEach((n) => n.remove());
+        rich = buildRichTextFromNode(clone);
+      }
+      if (!rich.length) return;
+
+      const block = {
+        object: "block",
+        type: listType,
+        [listType]: { rich_text: rich },
+      };
+
+      // 依照實際 DOM 順序蒐集子節點（含標題、段落、子清單、程式碼、分隔）
+      const children = [];
+      const usedP = p || null;
+      Array.from(li.childNodes).forEach((child) => {
+        if (!(child instanceof HTMLElement)) return;
+        if (child === usedP) {
+          processedNodes.add(child);
+          return;
+        }
+        const ctag = child.nodeName;
+        // 子清單
+        if (ctag === "UL" || ctag === "OL") {
+          if (!processedLists.has(child)) {
+            children.push(...parseList(child));
+          }
+          processedNodes.add(child);
+          return;
+        }
+        // 分隔線
+        if (ctag === "HR") {
+          children.push({ object: "block", type: "divider", divider: {} });
+          processedNodes.add(child);
+          return;
+        }
+        // 標題（預設 H3 之下都映射為 heading_3）
+        if (
+          ctag === "H1" ||
+          ctag === "H2" ||
+          ctag === "H3" ||
+          ctag === "H4" ||
+          ctag === "H5" ||
+          ctag === "H6"
+        ) {
+          const headingType =
+            ctag === "H1"
+              ? "heading_1"
+              : ctag === "H2"
+              ? "heading_2"
+              : "heading_3";
+          const rich = buildRichTextFromNode(child);
+          if (rich.length) {
+            children.push({
+              object: "block",
+              type: headingType,
+              [headingType]: { rich_text: rich },
+            });
+          }
+          processedNodes.add(child);
+          return;
+        }
+        // 段落/引言
+        if (ctag === "P" || ctag === "BLOCKQUOTE") {
+          const type = ctag === "BLOCKQUOTE" ? "quote" : "paragraph";
+          const rich = buildRichTextFromNode(child);
+          if (rich.length)
+            children.push({
+              object: "block",
+              type,
+              [type]: { rich_text: rich },
+            });
+          processedNodes.add(child);
+          return;
+        }
+        // 程式碼區塊 <pre><code/>
+        if (ctag === "PRE") {
+          const codeNode = child.querySelector("code");
+          let codeText = codeNode ? codeNode.textContent : child.textContent;
+          let lang = "plain text";
+          if (codeNode) {
+            const cls = Array.from(codeNode.classList).find((c) =>
+              c.startsWith("language-")
+            );
+            if (cls) {
+              lang = cls.replace(/^language-/, "").toLowerCase();
+              if (lang === "js") lang = "javascript";
+              if (!NOTION_CODE_LANGUAGES.has(lang)) lang = "plain text";
+            }
+          }
+          const segments = [];
+          let buf = "";
+          codeText.split("\n").forEach((line) => {
+            if (buf.length + line.length + 1 > 2000) {
+              segments.push(buf);
+              buf = "";
+            }
+            buf += (buf ? "\n" : "") + line;
+          });
+          if (buf) segments.push(buf);
+          children.push({
+            object: "block",
+            type: "code",
+            code: {
+              language: lang,
+              rich_text: segments.map((txt) => ({
+                type: "text",
+                text: { content: txt },
+              })),
+            },
+          });
+          processedNodes.add(child);
+          return;
+        }
+        // <code class="language-xxx"> 區塊（非 inline）
+        if (
+          ctag === "CODE" &&
+          Array.from(child.classList).some((c) => c.startsWith("language-"))
+        ) {
+          if (child.closest("pre")) {
+            processedNodes.add(child);
+            return;
+          }
+          let lang = Array.from(child.classList)
+            .find((c) => c.startsWith("language-"))
+            .replace(/^language-/, "")
+            .toLowerCase();
+          if (lang === "js") lang = "javascript";
+          if (!NOTION_CODE_LANGUAGES.has(lang)) lang = "plain text";
+          const codeText = child.textContent;
+          const segments = [];
+          let buf = "";
+          codeText.split("\n").forEach((line) => {
+            if (buf.length + line.length + 1 > 2000) {
+              segments.push(buf);
+              buf = "";
+            }
+            buf += (buf ? "\n" : "") + line;
+          });
+          if (buf) segments.push(buf);
+          children.push({
+            object: "block",
+            type: "code",
+            code: {
+              language: lang,
+              rich_text: segments.map((txt) => ({
+                type: "text",
+                text: { content: txt },
+              })),
+            },
+          });
+          processedNodes.add(child);
+          return;
+        }
+      });
+      if (children.length) {
+        block[listType].children = children;
+      }
+
+      items.push(block);
+    });
+
+    return items;
+  }
+
   nodes.forEach((node) => {
+    if (processedNodes.has(node)) return;
     const tag = node.nodeName;
 
     // (2.5) 處理 <pre> 區塊（有時候 code block 是 <pre><code>…</code></pre>）
@@ -373,42 +594,56 @@ function htmlToBlocksFromElement(el) {
     )
       return;
 
-    // (2) 表格
+    // (2) 表格（保留儲存格中的連結）
     if (tag === "TABLE") {
-      const headers = Array.from(node.querySelectorAll("thead tr th")).map(
-        (th) => th.textContent.trim()
+      const headerCells = Array.from(node.querySelectorAll("thead tr th")).map(
+        (th) => buildRichTextFromNode(th)
       );
-      const bodyRows = node.querySelectorAll("tbody tr");
+      const bodyRows = Array.from(node.querySelectorAll("tbody tr"));
       const children = [];
 
       // 標題列
-      children.push({
-        object: "block",
-        type: "table_row",
-        table_row: {
-          cells: headers.map((t) => [{ type: "text", text: { content: t } }]),
-        },
-      });
+      if (headerCells.length) {
+        children.push({
+          object: "block",
+          type: "table_row",
+          table_row: {
+            cells: headerCells.map((rt) =>
+              rt.length ? rt : [{ type: "text", text: { content: "" } }]
+            ),
+          },
+        });
+      }
       // 資料列
       bodyRows.forEach((tr) => {
-        const cells = Array.from(tr.querySelectorAll("td")).map((td) =>
-          td.textContent.trim()
+        const cellRichTexts = Array.from(tr.querySelectorAll("td")).map((td) =>
+          buildRichTextFromNode(td)
         );
         children.push({
           object: "block",
           type: "table_row",
           table_row: {
-            cells: cells.map((t) => [{ type: "text", text: { content: t } }]),
+            cells: cellRichTexts.map((rt) =>
+              rt.length ? rt : [{ type: "text", text: { content: "" } }]
+            ),
           },
         });
       });
+
+      // 決定表格寬度
+      let tableWidth = headerCells.length;
+      if (!tableWidth && bodyRows.length) {
+        const first = bodyRows[0];
+        tableWidth = first ? first.querySelectorAll("td").length : 0;
+      }
+      tableWidth = tableWidth || 1;
 
       blocks.push({
         object: "block",
         type: "table",
         table: {
-          table_width: headers.length,
-          has_column_header: true,
+          table_width: tableWidth,
+          has_column_header: !!headerCells.length,
           has_row_header: false,
           children,
         },
@@ -462,30 +697,19 @@ function htmlToBlocksFromElement(el) {
       return;
     }
 
-    // (5) 跳過列表容器本身
-    if (tag === "UL" || tag === "OL") return;
-
-    // (6) 列表項目
-    if (tag === "LI") {
-      const p = node.querySelector(":scope > p");
-      const txt = (p ? p.textContent : node.textContent).trim();
-      if (!txt) return;
-      const listType =
-        node.parentElement.nodeName === "OL"
-          ? "numbered_list_item"
-          : "bulleted_list_item";
-      blocks.push({
-        object: "block",
-        type: listType,
-        [listType]: {
-          rich_text: [{ type: "text", text: { content: txt } }],
-        },
-      });
+    // (5) 列表容器：一次處理整個清單並保留巢狀
+    if (tag === "UL" || tag === "OL") {
+      if (processedLists.has(node)) return;
+      blocks.push(...parseList(node));
       return;
     }
 
-    // (7) 列表內段落 <p> 不重複處理
-    if (tag === "P" && node.closest("li")) return;
+    // (6) 列表項目：改由 (5) 的列表容器處理，這裡跳過避免重複
+    if (tag === "LI") return;
+
+    // (7) 列表內段落 <p> 不重複處理；blockquote 內的 <p> 也跳過，避免重複
+    if (tag === "P" && (node.closest("li") || node.closest("blockquote")))
+      return;
 
     // (8) 其他文字節點
     const txt = node.textContent.trim();
@@ -620,7 +844,9 @@ function createNotebookButton(msgEl) {
         chrome.runtime.sendMessage(
           { action: "appendBlocks", pageId, blocks },
           (res) => {
-            if (!res.success) {
+            if (res.success) {
+              reset();
+            } else {
               if (res.error && res.error.includes("401")) {
                 alert("Notion 連線失敗：請檢查 Integration Token 或 Page ID");
               } else {
