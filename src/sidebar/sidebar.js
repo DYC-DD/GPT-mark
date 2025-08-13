@@ -105,23 +105,12 @@ chrome.storage.onChanged.addListener((changes, area) => {
 });
 
 // ----- 標籤與書籤處理功能 -----
-// 從 chrome.storage 取得目前聊天室所有書籤
+// 從 local+sync 取得目前聊天室所有書籤
 function fetchBookmarksWithTags(cb) {
   if (!CURRENT_CHAT_KEY) return cb([]);
-  const keyV2 = CURRENT_CHAT_KEY; // 無斜線 key
-  const keyV1 = `${CURRENT_CHAT_KEY}/`; // 有斜線 key
-
-  chrome.storage.local.get([keyV2, keyV1], (res) => {
-    let list = res[keyV2];
-    // 如果新 key 沒資料、但舊 key 有 → 自動搬家
-    if (!list && res[keyV1]) {
-      list = res[keyV1];
-      chrome.storage.local.set({ [keyV2]: list }, () =>
-        chrome.storage.local.remove(keyV1)
-      );
-    }
-    list = list || [];
-    cb(list.map((item) => ({ ...item, hashtags: item.hashtags || [] })));
+  dualGet(CURRENT_CHAT_KEY).then((list) => {
+    const cleaned = list.map(withDefaults).filter((it) => !it.deleted);
+    cb(cleaned);
   });
 }
 
@@ -129,16 +118,15 @@ function fetchBookmarksWithTags(cb) {
 function onAddTag(bookmarkId) {
   const tag = prompt(messages.addHashtagPrompt);
   if (!tag) return;
-  fetchBookmarksWithTags((list) => {
-    const updated = list.map((item) => {
-      if (item.id === bookmarkId) {
-        const hs = new Set(item.hashtags);
-        hs.add(tag);
-        return { ...item, hashtags: Array.from(hs) };
-      }
-      return item;
+  dualGet(CURRENT_CHAT_KEY).then((list) => {
+    const now = Date.now();
+    const updated = list.map((it) => {
+      if (it.id !== bookmarkId) return it;
+      const hs = new Set(it.hashtags || []);
+      hs.add(tag);
+      return { ...withDefaults(it), hashtags: Array.from(hs), updatedAt: now };
     });
-    chrome.storage.local.set({ [CURRENT_CHAT_KEY]: updated }, () => {
+    dualSet(CURRENT_CHAT_KEY, updated).then(() => {
       renderHashtagList();
       loadSidebarBookmarks();
     });
@@ -146,15 +134,14 @@ function onAddTag(bookmarkId) {
 }
 // 移除 Hashtag
 function onRemoveTag(bookmarkId, tag) {
-  fetchBookmarksWithTags((list) => {
-    const updated = list.map((item) => {
-      if (item.id === bookmarkId) {
-        const newTags = item.hashtags.filter((t) => t !== tag);
-        return { ...item, hashtags: newTags };
-      }
-      return item;
+  dualGet(CURRENT_CHAT_KEY).then((list) => {
+    const now = Date.now();
+    const updated = list.map((it) => {
+      if (it.id !== bookmarkId) return it;
+      const hs = (it.hashtags || []).filter((t) => t !== tag);
+      return { ...withDefaults(it), hashtags: hs, updatedAt: now };
     });
-    chrome.storage.local.set({ [CURRENT_CHAT_KEY]: updated }, () => {
+    dualSet(CURRENT_CHAT_KEY, updated).then(() => {
       renderHashtagList();
       loadSidebarBookmarks();
     });
@@ -205,15 +192,16 @@ function loadSidebarBookmarks() {
     // 標籤篩選
     if (selectedTags.size) {
       list = list.filter((item) =>
-        item.hashtags.some((tag) => selectedTags.has(tag))
+        (item.hashtags || []).some((tag) => selectedTags.has(tag))
       );
     }
-    // 根據加入順序或聊天順序排序
+
+    // 排序
     const sortOrder = getSavedSort();
     if (sortOrder === "chat") {
-      // 依聊天順序
+      // 依聊天順序（DOM 出現順序）
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (!tabs[0]?.id) return;
+        if (!tabs[0]?.id) return renderList(list);
         const origin = new URL(tabs[0].url || "").origin;
         if (
           !["https://chat.openai.com", "https://chatgpt.com"].includes(origin)
@@ -240,7 +228,12 @@ function loadSidebarBookmarks() {
         );
       });
     } else {
-      // 依加入順序
+      // 依加入順序（穩定使用 createdAt；舊資料回退 updatedAt）
+      list.sort((a, b) => {
+        const ta = a.createdAt || a.updatedAt || 0;
+        const tb = b.createdAt || b.updatedAt || 0;
+        return ta - tb;
+      });
       renderList(list);
     }
   });
@@ -305,24 +298,29 @@ function renderList(list) {
 }
 
 // ----- 初始化 & 監聽路由變化 -----
+let BOUND_KEY = null;
+
 function initCurrentKeyAndLoad() {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (!tabs[0]?.url) return;
     const path = normalizePath(new URL(tabs[0].url).pathname);
     if (path && path !== CURRENT_CHAT_KEY) {
       CURRENT_CHAT_KEY = path;
+
+      // 綁定對應 key 的 storage 監聽（避免重複綁）
+      if (BOUND_KEY !== CURRENT_CHAT_KEY) {
+        BOUND_KEY = CURRENT_CHAT_KEY;
+        onKeyStorageChanged(CURRENT_CHAT_KEY, () => {
+          renderHashtagList();
+          loadSidebarBookmarks();
+        });
+      }
+
       renderHashtagList();
       loadSidebarBookmarks();
     }
   });
 }
-// 當 storage 有改動（同聊天室 key）重新讀取列表
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && CURRENT_CHAT_KEY in changes) {
-    renderHashtagList();
-    loadSidebarBookmarks();
-  }
-});
 
 // 頁面載入後執行一次初始化，並每＿秒檢查路徑與空白狀態
 document.addEventListener("DOMContentLoaded", async () => {
@@ -344,6 +342,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         !document.getElementById("bookmark-list").childElementCount;
       if (path !== CURRENT_CHAT_KEY || listEmpty) {
         CURRENT_CHAT_KEY = path;
+        if (BOUND_KEY !== CURRENT_CHAT_KEY) {
+          BOUND_KEY = CURRENT_CHAT_KEY;
+          onKeyStorageChanged(CURRENT_CHAT_KEY, () => {
+            renderHashtagList();
+            loadSidebarBookmarks();
+          });
+        }
         renderHashtagList();
         loadSidebarBookmarks();
       }
