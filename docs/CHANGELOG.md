@@ -2,6 +2,13 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [3.2.1] - 2025-08-15
+
+### Fixed
+
+- 修正書籤按鈕插入時的競態條件問題，避免初始化階段重複渲染或錯誤顯示
+- 修復從其他聊天室切換回主頁時，側邊欄未正確清除書籤內容的問題（避免顯示殘留資料）
+
 ## [3.2.0] - 2025-08-13
 
 ### Added

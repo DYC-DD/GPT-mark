@@ -496,29 +496,42 @@ function createBookmarkButton(msg) {
 }
 
 // 嘗試將書籤按鈕注入到指定訊息
+const _scheduledInjects = new Map();
 function tryInjectButton(msg) {
-  const btn = createBookmarkButton(msg);
-  if (!btn) return;
-
-  // 優先插在「複製按鈕」左側
-  const turn = msg.closest("article");
-  const copyBtn = turn?.querySelector(
-    '[data-testid="copy-turn-action-button"]'
-  );
-  if (copyBtn && copyBtn.parentNode) {
-    // 複製按鈕已存在，直接插在它左邊
+  const id = msg?.dataset?.messageId;
+  if (!id) return;
+  const insertNow = () => {
+    if (
+      document.querySelector(`.chatgpt-bookmark-btn[data-bookmark-id="${id}"]`)
+    ) {
+      return true;
+    }
+    const curMsg =
+      document.querySelector(`[data-message-id="${CSS.escape(id)}"]`) || msg;
+    const turn = curMsg?.closest("article");
+    if (!turn) return false;
+    const copyBtn = turn.querySelector(
+      '[data-testid="copy-turn-action-button"]'
+    );
+    if (!copyBtn || !copyBtn.parentNode) return false;
+    const btn = createBookmarkButton(curMsg);
+    if (!btn) return true;
     copyBtn.parentNode.insertBefore(btn, copyBtn);
-  } else {
-    // 複製按鈕還沒出現，500ms 後再嘗試一次
-    setTimeout(() => {
-      const delayed = turn?.querySelector(
-        '[data-testid="copy-turn-action-button"]'
-      );
-      if (delayed && delayed.parentNode) {
-        delayed.parentNode.insertBefore(btn, delayed);
-      }
-    }, 500);
-  }
+    return true;
+  };
+
+  if (insertNow()) return;
+  if (_scheduledInjects.has(id)) return;
+
+  let attempts = 5; // 最多嘗試次數
+  const intervalId = setInterval(() => {
+    if (insertNow() || --attempts === 0) {
+      clearInterval(intervalId);
+      _scheduledInjects.delete(id);
+    }
+  }, 120);
+
+  _scheduledInjects.set(id, intervalId);
 }
 
 // 為目前頁面所有已渲染的訊息注入書籤按鈕

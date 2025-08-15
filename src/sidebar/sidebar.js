@@ -27,6 +27,8 @@ const normalizePath = (p) => {
   // 如果是群組路徑 /g/.../c/<id>，只保留 /c/<id>
   const m = p.match(/^\/g\/[^/]+\/c\/([^/]+)$/);
   if (m) return `/c/${m[1]}`;
+  // 首頁 / 新聊天室（沒有 chatId）
+  if (p === "" || p === "/") return null;
   return p;
 };
 
@@ -239,6 +241,15 @@ function loadSidebarBookmarks() {
   });
 }
 
+// ----- 清理 sidebar -----
+function clearSidebar() {
+  const list = document.getElementById("bookmark-list");
+  if (list) list.innerHTML = "";
+  const tagBox = document.getElementById("hashtag-container");
+  if (tagBox) tagBox.innerHTML = "";
+  selectedTags.clear();
+}
+
 // ----- 顯示書籤列表 -----
 function renderList(list) {
   const container = document.getElementById("bookmark-list");
@@ -304,7 +315,15 @@ function initCurrentKeyAndLoad() {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (!tabs[0]?.url) return;
     const path = normalizePath(new URL(tabs[0].url).pathname);
-    if (path && path !== CURRENT_CHAT_KEY) {
+    if (!path) {
+      if (CURRENT_CHAT_KEY !== null) {
+        CURRENT_CHAT_KEY = null;
+        clearSidebar();
+      }
+      return;
+    }
+
+    if (path !== CURRENT_CHAT_KEY) {
       CURRENT_CHAT_KEY = path;
 
       // 綁定對應 key 的 storage 監聽（避免重複綁）
@@ -336,10 +355,24 @@ document.addEventListener("DOMContentLoaded", async () => {
   initCurrentKeyAndLoad();
   setInterval(() => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (!tabs[0]?.url) return;
-      const path = normalizePath(new URL(tabs[0].url).pathname);
+      const url = tabs[0]?.url;
+      if (!url) return;
+
+      const path = normalizePath(new URL(url).pathname);
       const listEmpty =
         !document.getElementById("bookmark-list").childElementCount;
+
+      // (A) 新聊天室：沒有 chatId → 直接清空
+      if (!path) {
+        if (CURRENT_CHAT_KEY !== null || !listEmpty) {
+          CURRENT_CHAT_KEY = null;
+          BOUND_KEY = null;
+          clearSidebar();
+        }
+        return;
+      }
+
+      // (B) 有 chatId：切換聊天室或畫面是空的 → 載入
       if (path !== CURRENT_CHAT_KEY || listEmpty) {
         CURRENT_CHAT_KEY = path;
         if (BOUND_KEY !== CURRENT_CHAT_KEY) {
@@ -354,7 +387,6 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     });
   }, 500);
-  loadSidebarBookmarks();
 
   // 綁定按鈕：設定頁、排序切換、主題讀取
   document
