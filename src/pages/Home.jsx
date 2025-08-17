@@ -3,6 +3,7 @@ import gptImage from "../assets/GPT-pin-Photoroom.png";
 import starIcon from "../assets/star-fill.svg";
 import texture from "../assets/texture.avif";
 import AnimatedList from "../components/AnimatedList/AnimatedList";
+import Features from "../components/Features/Features";
 import GithubStars from "../components/GithubStars/GithubStars";
 import ProfileCard from "../components/ProfileCard/ProfileCard";
 import "../styles/Home.css";
@@ -72,16 +73,8 @@ function Home() {
       <section id="features" className="section fullpage-section">
         <div className="section-inner features-section">
           <h1>Features</h1>
-          <p>Features</p>
-
-          <div className="features-video-wrapper">
-            <iframe
-              src="https://www.youtube.com/embed/dQw4w9WgXcQ"
-              title="YouTube video"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
-            ></iframe>
-          </div>
+          <Features />
+          <p>This is the instruction and tutorial for GPT-mark.</p>
         </div>
       </section>
 

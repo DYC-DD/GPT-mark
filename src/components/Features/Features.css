@@ -1,0 +1,17 @@
+.features-video-wrapper {
+  margin: 2rem 0 2.5rem 0;
+  width: min(90vw, 1800px);
+  aspect-ratio: 16 / 9;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.features-video-wrapper iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  border-radius: 12px;
+  display: block;
+}
