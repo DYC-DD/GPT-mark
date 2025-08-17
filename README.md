@@ -60,21 +60,7 @@
 
 以下為 ChatGPT Mark 的實際操作示意：
 
-**新增書籤：**
-
-![](./assets/demo/add_bookmark.gif)
-
-**新增 hashtag 和切換排序：**
-
-![](./assets/demo/add_hashtag_and_sort.gif)
-
-**hashtag 分類：**
-
-![](./assets/demo/hashtag_category.gif)
-
-**自動滾動到該訊息：**
-
-![](./assets/demo/auto_scroll_to_message.gif)
+[![Watch on YouTube](https://img.shields.io/badge/YouTube-Demo%20video-red?logo=youtube)](https://www.youtube.com/watch?v=0Bg-5DXAdg0)
 
 ## 匯出 JSON 結構
 
