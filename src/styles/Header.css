@@ -101,3 +101,40 @@
   background: rgba(255, 255, 255, 0.1);
   transform: scale(1.05);
 }
+
+@media (max-width: 768px) {
+  .header-wrapper {
+    top: 24px;
+    height: 40px;
+  }
+  .frosted-header {
+    min-width: 40px;
+  }
+  .logo {
+    font-weight: 600;
+    font-size: 1rem;
+    margin-right: 1rem;
+  }
+  .logo img {
+    height: 24px;
+    margin-right: 2px;
+  }
+  .nav-links {
+    gap: 0.6rem;
+  }
+  .nav-links a {
+    font-size: 0.8rem;
+  }
+  .floating-icon-buttons {
+    gap: 0.2rem;
+  }
+  .icon-button {
+    width: 40px;
+    height: 40px;
+  }
+
+  .icon-button img {
+    width: 20px;
+    height: 20px;
+  }
+}

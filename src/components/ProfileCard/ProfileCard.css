@@ -444,142 +444,41 @@
 
 @media (max-width: 768px) {
   .pc-card {
-    height: 70svh;
+    height: 65svh;
     max-height: 450px;
   }
-
   .pc-details {
     top: 2em;
   }
-
   .pc-details h3 {
-    font-size: min(4svh, 2.5em);
+    font-size: min(6svh, 2.5em);
   }
-
   .pc-details p {
-    font-size: 14px;
+    font-size: 18px;
   }
-
   .pc-user-info {
     bottom: 15px;
     left: 15px;
     right: 15px;
     padding: 10px 12px;
+    border-radius: 999px;
   }
-
   .pc-mini-avatar {
-    width: 28px;
-    height: 28px;
+    width: 36px;
+    height: 36px;
   }
-
   .pc-user-details {
     gap: 10px;
   }
-
   .pc-handle {
-    font-size: 13px;
+    font-size: 14px;
   }
-
   .pc-status {
     font-size: 10px;
   }
-
   .pc-contact-btn {
     padding: 6px 12px;
-    font-size: 11px;
-  }
-}
-
-@media (max-width: 480px) {
-  .pc-card {
-    height: 60svh;
-    max-height: 380px;
-  }
-
-  .pc-details {
-    top: 1.5em;
-  }
-
-  .pc-details h3 {
-    font-size: min(3.5svh, 2em);
-  }
-
-  .pc-details p {
     font-size: 12px;
-    top: -8px;
-  }
-
-  .pc-user-info {
-    bottom: 12px;
-    left: 12px;
-    right: 12px;
-    padding: 8px 10px;
-    border-radius: 50px;
-  }
-
-  .pc-mini-avatar {
-    width: 24px;
-    height: 24px;
-  }
-
-  .pc-user-details {
-    gap: 8px;
-  }
-
-  .pc-handle {
-    font-size: 12px;
-  }
-
-  .pc-status {
-    font-size: 9px;
-  }
-
-  .pc-contact-btn {
-    padding: 5px 10px;
-    font-size: 10px;
-    border-radius: 50px;
-  }
-}
-
-@media (max-width: 320px) {
-  .pc-card {
-    height: 55svh;
-    max-height: 320px;
-  }
-
-  .pc-details h3 {
-    font-size: min(3svh, 1.5em);
-  }
-
-  .pc-details p {
-    font-size: 11px;
-  }
-
-  .pc-user-info {
-    padding: 6px 8px;
-    border-radius: 50px;
-  }
-
-  .pc-mini-avatar {
-    width: 20px;
-    height: 20px;
-  }
-
-  .pc-user-details {
-    gap: 6px;
-  }
-
-  .pc-handle {
-    font-size: 11px;
-  }
-
-  .pc-status {
-    font-size: 8px;
-  }
-
-  .pc-contact-btn {
-    padding: 4px 8px;
-    font-size: 9px;
-    border-radius: 50px;
+    border-radius: 999px;
   }
 }

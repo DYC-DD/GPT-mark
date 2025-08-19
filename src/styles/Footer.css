@@ -40,3 +40,10 @@
 .footer-email:hover {
   color: rgba(255, 255, 255, 0.2);
 }
+
+@media (max-width: 768px) {
+  .footer-wrapper {
+    bottom: 6px;
+    height: 40px;
+  }
+}

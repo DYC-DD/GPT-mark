@@ -106,3 +106,24 @@ h1 {
   font-size: 2.4rem;
   margin-bottom: 1.5rem;
 }
+
+.features-section p {
+  font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+  .pc-status-stars {
+    font-size: 12px;
+  }
+  .pc-status-stars img {
+    width: 0.9em;
+    height: 0.9em;
+  }
+  h1 {
+    font-size: 1.8rem;
+    margin-bottom: 0.8rem;
+  }
+  .features-section p {
+    font-size: 0.8rem;
+  }
+}

@@ -100,3 +100,33 @@
   pointer-events: none;
   transition: opacity 0.3s ease;
 }
+
+@media (max-width: 768px) {
+  .scroll-list-container {
+    width: 90vw;
+    max-width: 500px;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
+    box-sizing: border-box;
+  }
+
+  .scroll-list {
+    max-height: 420px;
+    padding: 0px;
+  }
+  .item {
+    min-height: 10px;
+  }
+  .item-text {
+    font-size: 1rem;
+    font-weight: 400;
+  }
+  .content-text {
+    font-size: 0.8rem;
+    margin-top: 0.6rem;
+  }
+  .content-text code {
+    font-size: 0.8rem;
+  }
+}

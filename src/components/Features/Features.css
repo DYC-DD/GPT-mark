@@ -15,3 +15,17 @@
   border-radius: 12px;
   display: block;
 }
+
+@media (max-width: 768px) {
+  .features-video-wrapper {
+    width: 98vw;
+    margin-left: -16px;
+    margin-right: -16px;
+    margin-bottom: 1.5rem;
+    border-radius: 8px;
+  }
+
+  .features-video-wrapper iframe {
+    border-radius: 8px;
+  }
+}
