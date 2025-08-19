@@ -87,55 +87,65 @@ document
   .addEventListener("click", downloadBookmarks);
 
 async function downloadBookmarks() {
-  chrome.storage.local.get(null, (res) => {
-    const chats = [];
+  const [locAll, synAll] = await Promise.all([
+    chrome.storage.local.get(null),
+    chrome.storage.sync.get(null),
+  ]);
 
-    for (const [pathname, messages] of Object.entries(res)) {
-      if (!Array.isArray(messages) || messages.length === 0) continue;
+  const allKeys = new Set([
+    ...Object.keys(locAll).filter((k) => k.startsWith("/c/")),
+    ...Object.keys(synAll).filter((k) => k.startsWith("/c/")),
+  ]);
 
-      const parts = pathname.split("/");
-      const chatId = parts.at(-1);
-      const url = pathname.startsWith("/c/")
-        ? `https://chatgpt.com${pathname}`
-        : `https://chat.openai.com${pathname}`;
+  const chats = [];
+  for (const pathname of allKeys) {
+    const merged = await dualGet(pathname);
+    const messages = merged.map(withDefaults).filter((m) => !m.deleted);
+    if (messages.length === 0) continue;
 
-      const formattedMessages = messages.map((msg) => ({
-        id: msg.id,
-        role:
-          msg.role === "assistant"
-            ? "ChatGPT"
-            : msg.role === "user"
-            ? "User"
-            : msg.role || "Unknown",
-        content: msg.content || "",
-        hashtags: msg.hashtags || [],
-      }));
+    const parts = pathname.split("/");
+    const chatId = parts.at(-1);
+    const url = pathname.startsWith("/c/")
+      ? `https://chatgpt.com${pathname}`
+      : `https://chat.openai.com${pathname}`;
 
-      chats.push({
-        chatId,
-        url,
-        bookmarkCount: formattedMessages.length,
-        bookmarks: formattedMessages,
-      });
-    }
+    const formattedMessages = messages.map((msg) => ({
+      id: msg.id,
+      role:
+        msg.role === "assistant"
+          ? "ChatGPT"
+          : msg.role === "user"
+          ? "User"
+          : msg.role || "Unknown",
+      content: msg.content || "",
+      hashtags: msg.hashtags || [],
+      updatedAt: msg.updatedAt || 0,
+    }));
 
-    const payload = {
-      downloadInfo: {
-        downloadedAt: new Date().toISOString(),
-        totalChats: chats.length,
-      },
-      chats,
-    };
-
-    const blob = new Blob([JSON.stringify(payload, null, 4)], {
-      type: "application/json",
+    chats.push({
+      chatId,
+      url,
+      bookmarkCount: formattedMessages.length,
+      bookmarks: formattedMessages,
     });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "chatgpt_bookmarks.json";
-    a.click();
-    URL.revokeObjectURL(a.href);
+  }
+
+  const payload = {
+    downloadInfo: {
+      downloadedAt: new Date().toISOString(),
+      totalChats: chats.length,
+    },
+    chats,
+  };
+
+  const blob = new Blob([JSON.stringify(payload, null, 4)], {
+    type: "application/json",
   });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "chatgpt_bookmarks.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 // DOM 載入完成後執行初始化
