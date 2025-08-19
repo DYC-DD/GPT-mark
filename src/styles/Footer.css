@@ -1,0 +1,42 @@
+.footer-wrapper {
+  position: fixed;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  z-index: 1000;
+  height: 46px;
+  width: max-content;
+}
+
+.frosted-footer {
+  height: 100%;
+  padding: 0 1.5rem;
+  min-width: 300px;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0);
+  backdrop-filter: blur(16px);
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(255, 255, 255, 0.1);
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.frosted-footer p {
+  margin: 0;
+}
+
+.footer-email {
+  color: rgba(255, 255, 255, 0.1);
+  text-decoration: none;
+  margin-left: 0.5rem;
+  transition: color 0.2s ease;
+}
+
+.footer-email:hover {
+  color: rgba(255, 255, 255, 0.2);
+}

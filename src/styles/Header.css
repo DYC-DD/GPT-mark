@@ -1,6 +1,6 @@
 .header-wrapper {
   position: fixed;
-  top: 36px;
+  top: 26px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -15,7 +15,7 @@
   position: static;
   height: 100%;
   padding: 0 1.5rem;
-  min-width: 600px;
+  min-width: 420px;
   background: rgba(119, 119, 119, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.15);
   backdrop-filter: blur(16px);
@@ -36,7 +36,7 @@
   display: flex;
   align-items: center;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 1.2rem;
   color: rgba(255, 255, 255, 0.8);
   text-decoration: none;
 }

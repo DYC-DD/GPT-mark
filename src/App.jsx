@@ -1,5 +1,6 @@
 import React from "react";
 import Particles from "./components/Particles/Particles";
+import Footer from "./layouts/Footer";
 import Header from "./layouts/Header";
 import Home from "./pages/Home";
 
@@ -20,6 +21,7 @@ function App() {
       </div>
       <Header />
       <Home />
+      <Footer />
     </div>
   );
 }

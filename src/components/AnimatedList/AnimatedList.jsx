@@ -28,6 +28,14 @@ const AnimatedItem = ({
   );
 };
 
+const renderInlineCode = (text) => {
+  if (typeof text !== "string") return text;
+  const parts = text.split(/`([^`]+)`/g);
+  return parts.map((part, i) =>
+    i % 2 === 1 ? <code key={i}>{part}</code> : part
+  );
+};
+
 const AnimatedList = ({
   items = [
     "Item 1",
@@ -170,7 +178,9 @@ const AnimatedList = ({
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <div className="content-text">{content}</div>
+                      <div className="content-text">
+                        {renderInlineCode(content)}
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>

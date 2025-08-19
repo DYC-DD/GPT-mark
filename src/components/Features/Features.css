@@ -1,6 +1,6 @@
 .features-video-wrapper {
-  margin: 2rem 0 2.5rem 0;
-  width: min(90vw, 1800px);
+  margin-bottom: 2.5rem;
+  width: min(90vw, 1280px);
   aspect-ratio: 16 / 9;
   border-radius: 12px;
   overflow: hidden;

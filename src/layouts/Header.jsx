@@ -15,7 +15,7 @@ const Header = () => {
           </a>
           <nav className="nav-links">
             <a href="#features">Features</a>
-            <a href="#q&a">Q&A</a>
+            <a href="#faq">FAQs</a>
           </nav>
         </div>
       </header>
