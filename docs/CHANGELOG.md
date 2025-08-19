@@ -10,6 +10,7 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
 - 加入頁面錨點功能，支援滑動至 Home、Features、Contact 等段落。
 - 嵌入 YouTube 影片於 Features 區塊中，支援響應式顯示與置中樣式。
 - 建立 Footer 元件，包含版權與聯絡資訊，顯示於頁面底部。
+- 新增 i18n 多語系自動偵測功能，可依據瀏覽器語言自動切換。
 
 ## [1.0.1] - 2025-08-01
 

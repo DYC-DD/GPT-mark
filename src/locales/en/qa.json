@@ -1,0 +1,42 @@
+[
+  {
+    "title": "What is GPT-mark?",
+    "content": "GPT-mark is a Chrome extension designed for the ChatGPT web interface. It provides a \"Message Bookmark\" feature and a \"Sidebar Quick Navigation\" function, allowing users to quickly mark and revisit important content."
+  },
+  {
+    "title": "How to add a bookmark?",
+    "content": "A bookmark icon will appear to the left of the copy button under each ChatGPT message. Click the icon to add or remove a bookmark."
+  },
+  {
+    "title": "How to manage bookmarks?",
+    "content": "Open the sidebar on the right to view all saved bookmarks. They can be sorted by conversation order or by the time they were added, and can also be filtered using `#Hashtags`."
+  },
+  {
+    "title": "How to open the sidebar?",
+    "content": "• Click the extension icon.\n• Right-click on the ChatGPT page and select \"Open GPT-mark.\""
+  },
+  {
+    "title": "How to use hashtags?",
+    "content": "On a bookmark card in the sidebar, click the \"`#`\" button to add a tag. Existing tags are displayed below the bookmark and can also be removed."
+  },
+  {
+    "title": "Can bookmarks be synced across devices?",
+    "content": "Yes. The extension uses both `chrome.storage.local` and `chrome.storage.sync` to ensure bookmarks are synchronized across different devices."
+  },
+  {
+    "title": "Will my bookmarks be deleted?",
+    "content": "When a bookmark is deleted, it is first marked as a \"tombstone.\" It will only be permanently removed after 30 days, preventing accidental loss."
+  },
+  {
+    "title": "What format are bookmarks exported in?",
+    "content": "Bookmarks are exported as a JSON file:\n• `downloadInfo`: Download timestamp and total number of conversations\n• `chats`: Each conversation’s `chatId`, `url`, `bookmarkCount`, and `bookmarks`\n  (including `id`, `role`, `content`, `hashtags`, `updatedAt`)"
+  },
+  {
+    "title": "What is the double Enter feature?",
+    "content": "When editing a message:\n• Single `Enter` → Line break\n• Quick double `Enter` → Send message\n• `Shift + Enter` → Always insert a line break"
+  },
+  {
+    "title": "Is it normal that the sidebar doesn’t open on other websites?",
+    "content": "Yes. The sidebar is only available on chat.openai.com and chatgpt.com to avoid interfering with unrelated websites."
+  }
+]
