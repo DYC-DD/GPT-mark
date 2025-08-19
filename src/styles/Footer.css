@@ -21,7 +21,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.15);
   font-size: 0.8rem;
   text-align: center;
 }
@@ -31,14 +31,14 @@
 }
 
 .footer-email {
-  color: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.15);
   text-decoration: none;
   margin-left: 0.5rem;
   transition: color 0.2s ease;
 }
 
 .footer-email:hover {
-  color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.25);
 }
 
 @media (max-width: 768px) {

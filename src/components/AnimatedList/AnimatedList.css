@@ -128,5 +128,6 @@
   }
   .content-text code {
     font-size: 0.8rem;
+    padding: 1px 4px;
   }
 }
