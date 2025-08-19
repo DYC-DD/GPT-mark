@@ -12,7 +12,7 @@
 
 這是一款為 ChatGPT 網頁介面設計的 Chrome 擴充小工具。為對話加上書籤與快捷傳送功能，支援側邊欄書籤導航、編輯時雙擊 Enter 快速送出訊息，幫助你高效回顧與組織聊天內容！
 
-## 使用說明
+## 功能說明
 
 **書籤功能**
 
@@ -82,13 +82,15 @@
           "id": "057b6385-751d-xxxxxx",
           "role": "User",
           "content": "一句話介紹 LLM",
-          "hashtags": ["AI"]
+          "hashtags": ["AI"],
+          "updatedAt": 1755591100546
         },
         {
           "id": "d2c2b291-9ae7-xxxxxx",
           "role": "ChatGPT",
           "content": "大型語言模型（LLM）是透過訓練大量文本資料來理解與生成自然語言。",
-          "hashtags": ["AI", "ML", "DL"]
+          "hashtags": ["AI", "ML", "DL"],
+          "updatedAt": 1755591101233
         }
       ]
     }
@@ -99,9 +101,17 @@
 ## 注意事項
 
 > - 本擴充功能僅作用於 [ChatGPT 官方網站](https://chatgpt.com/)
-> - 所有資料僅儲存在本機的 `chrome.storage.local`
-> - 此工具不會蒐集或使用你的資料。
+> - 書籤與設定資料的儲存方式：
+>   - 預設儲存於本機：使用 `chrome.storage.local`
+>   - 跨裝置同步：同時寫入 `chrome.storage.sync`，在登入同一 Google 帳號的 Chrome 瀏覽器間自動同步。
+>     - 需啟用 Chrome 的「同步」功能，並包含擴充功能資料。
+>     - 若未啟用同步，資料僅會保存在本機，不影響使用。
+> - 資料僅存在於你的 Google 帳號與裝置中，本工具不會將任何資料上傳或分享給作者或第三方伺服器。
 
 ## 更新紀錄
 
 查看完整更新紀錄：[CHANGELOG](./docs/CHANGELOG.md)
+
+## License
+
+[MIT License](./LICENSE)
