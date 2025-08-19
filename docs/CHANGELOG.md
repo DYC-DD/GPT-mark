@@ -2,7 +2,7 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
-## [1.1.0] -
+## [1.1.0] - 2025-08-19
 
 ### Added
 
@@ -12,6 +12,14 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
 - 建立 Footer 元件，包含版權與聯絡資訊，顯示於頁面底部。
 - 新增 i18n 多語系自動偵測功能，可依據瀏覽器語言自動切換。
 - 增強手機適應性進行 RWD 優化，提升小螢幕體驗。
+
+### Changed
+
+- 將 Features 區塊獨立為 Features.jsx 與 Features.css，提升模組化與維護性。
+- 調整 YouTube iframe 自動暫停邏輯，避免離開區塊後仍持續播放。
+- 優化 Particles 粒子背景效能與覆蓋範圍，統一適用於所有頁面。
+- 更新 AnimatedList 組件結構，增強鍵盤導覽體驗與樣式一致性。
+- 改進多語系資料載入結構，對應 JSON 檔分語系儲存於 locales。
 
 ## [1.0.1] - 2025-08-01
 
