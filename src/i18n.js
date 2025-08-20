@@ -30,3 +30,7 @@ export default i18n;
 // 測試 - 清空 localStorage 請在 DevTools Console 輸入以下：
 // localStorage.removeItem("i18nextLng");
 // location.reload();
+
+// http://localhost:5173/?lng=zh-TW
+// http://localhost:5173/?lng=en
+// http://localhost:5173/?lng=ja

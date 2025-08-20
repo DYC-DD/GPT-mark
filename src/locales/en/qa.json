@@ -4,28 +4,24 @@
     "content": "GPT-mark is a Chrome extension designed for the ChatGPT web interface. It provides a \"Message Bookmark\" feature and a \"Sidebar Quick Navigation\" function, allowing users to quickly mark and revisit important content."
   },
   {
-    "title": "How to add a bookmark?",
-    "content": "A bookmark icon will appear to the left of the copy button under each ChatGPT message. Click the icon to add or remove a bookmark."
-  },
-  {
-    "title": "How to manage bookmarks?",
-    "content": "Open the sidebar on the right to view all saved bookmarks. They can be sorted by conversation order or by the time they were added, and can also be filtered using `#Hashtags`."
+    "title": "How to add and manage bookmarks?",
+    "content": "A bookmark icon appears to the left of the copy button under each ChatGPT message. Click it to add or remove a bookmark.\nOpen the sidebar on the right to view your saved bookmarks. They can be sorted by conversation order or by the time they were added, and filtered using `#Hashtags`."
   },
   {
     "title": "How to open the sidebar?",
     "content": "• Click the extension icon.\n• Right-click on the ChatGPT page and select \"Open GPT-mark.\""
   },
   {
-    "title": "How to use hashtags?",
-    "content": "On a bookmark card in the sidebar, click the \"`#`\" button to add a tag. Existing tags are displayed below the bookmark and can also be removed."
-  },
-  {
     "title": "Can bookmarks be synced across devices?",
-    "content": "Yes. The extension uses both `chrome.storage.local` and `chrome.storage.sync` to ensure bookmarks are synchronized across different devices."
+    "content": "Yes. The extension uses both `chrome.storage.local` and `chrome.storage.sync` to ensure bookmarks are synchronized across devices."
   },
   {
-    "title": "Will my bookmarks be deleted?",
-    "content": "When a bookmark is deleted, it is first marked as a \"tombstone.\" It will only be permanently removed after 30 days, preventing accidental loss."
+    "title": "How to enable cross-device sync?",
+    "content": "You must sign in to Chrome and enable the \"Sync\" feature (including extension data). Once enabled, bookmarks will automatically sync via `chrome.storage.sync` to all devices under the same account."
+  },
+  {
+    "title": "What if Chrome sync is not enabled?",
+    "content": "If sync is disabled, the extension will still work offline. However, all bookmarks will only be stored locally in `chrome.storage.local` and will not sync to other devices automatically."
   },
   {
     "title": "What format are bookmarks exported in?",
@@ -38,5 +34,9 @@
   {
     "title": "Is it normal that the sidebar doesn’t open on other websites?",
     "content": "Yes. The sidebar is only available on chat.openai.com and chatgpt.com to avoid interfering with unrelated websites."
+  },
+  {
+    "title": "Will my data be uploaded to any server?",
+    "content": "No. The extension does not collect or send any data to the developer or third-party servers."
   }
 ]
