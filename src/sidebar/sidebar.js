@@ -110,7 +110,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // 從 local+sync 取得目前聊天室所有書籤
 function fetchBookmarksWithTags(cb) {
   if (!CURRENT_CHAT_KEY) return cb([]);
-  dualGet(CURRENT_CHAT_KEY).then((list) => {
+  dualRead(CURRENT_CHAT_KEY).then((list) => {
     const cleaned = list.map(withDefaults).filter((it) => !it.deleted);
     cb(cleaned);
   });
@@ -120,7 +120,7 @@ function fetchBookmarksWithTags(cb) {
 function onAddTag(bookmarkId) {
   const tag = prompt(messages.addHashtagPrompt);
   if (!tag) return;
-  dualGet(CURRENT_CHAT_KEY).then((list) => {
+  dualRead(CURRENT_CHAT_KEY).then((list) => {
     const now = Date.now();
     const updated = list.map((it) => {
       if (it.id !== bookmarkId) return it;
@@ -136,7 +136,7 @@ function onAddTag(bookmarkId) {
 }
 // 移除 Hashtag
 function onRemoveTag(bookmarkId, tag) {
-  dualGet(CURRENT_CHAT_KEY).then((list) => {
+  dualRead(CURRENT_CHAT_KEY).then((list) => {
     const now = Date.now();
     const updated = list.map((it) => {
       if (it.id !== bookmarkId) return it;
@@ -399,7 +399,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadSidebarBookmarks();
   });
   chrome.storage.local.get(MOOD_KEY, (res) =>
-    applyMood(res[MOOD_KEY] || "dark")
+    applyMood(res[MOOD_KEY] || "system")
   );
 });
 

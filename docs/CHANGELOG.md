@@ -2,6 +2,24 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [3.2.1] - 2025-08-21
+
+### Fixed
+
+- 修正 `dualRead` 未回灌 sync 導致的跨裝置同步不一致問題
+- 修正 `handleLocationChange` 重複定義造成的事件處理不確定性
+- 修正滾動功能在特定情況下無法準確滾至最上 / 最下的問題
+- 修正訊息高亮樣式背景顏色過淡或突兀的顯示問題
+
+### Changed
+
+- 移除覆蓋的舊版 `dualRead`，統一保留「必要時才回灌 sync」的實作方式
+- 確保 `dualRead` 在合併差異後自動排程同步寫入 sync 儲存空間
+- 移除 `content.js` 中未使用的工具函式（如 `toShadow`, `mergeItems`, `mergeLists` 等）
+- 所有資料存取邏輯統一透過 `shared/dual-storage.js` 管理，避免重複維護與覆寫風險
+- 高亮提示樣式調整並加上漸變動畫，提升辨識度與體驗一致性
+- 更新初始化邏輯，將預設模式改為 system，而非固定的亮/暗模式
+
 ## [3.2.0] - 2025-08-15
 
 ### Added

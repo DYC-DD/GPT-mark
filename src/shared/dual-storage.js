@@ -101,6 +101,19 @@ function mergeLists(listA = [], listB = []) {
   );
 }
 
+// 產生列表的簡易簽名（用於判斷是否需要回灌 sync）
+function listSignature(list = []) {
+  return (list || [])
+    .map((it) => {
+      const x = withDefaults(it);
+      return `${x.id}|${x.updatedAt}|${x.deleted ? 1 : 0}|${(
+        x.hashtags || []
+      ).join(",")}|${(x.content || "").length}`;
+    })
+    .sort()
+    .join(";");
+}
+
 // ---- sync 分片相關 ----
 function makeSyncShadowList(list) {
   return list.map((it) => {
@@ -194,6 +207,22 @@ function scheduleSyncFlush(prefix, list) {
   _writeTimers.set(prefix, timer);
 }
 
+// 只讀合併：寫回 local，且只有在合併後與 sync 不同時才安排回灌
+async function dualRead(key) {
+  const [loc, synList] = await Promise.all([
+    chrome.storage.local.get([key]),
+    syncGetAll(key),
+  ]);
+  const merged = mergeLists(loc[key], synList);
+
+  await chrome.storage.local.set({ [key]: merged });
+
+  if (listSignature(merged) !== listSignature(synList)) {
+    scheduleSyncFlush(key, merged);
+  }
+  return merged;
+}
+
 // ---- 對外 API ----
 // 從 local + sync 讀取並合併，回寫兩邊
 async function dualGet(key) {
@@ -231,6 +260,7 @@ function onKeyStorageChanged(prefix, handler) {
 }
 
 // 將重要方法掛到全域
+self.dualRead = dualRead;
 self.withDefaults = withDefaults;
 self.dualGet = dualGet;
 self.dualSet = dualSet;

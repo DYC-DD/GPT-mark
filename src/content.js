@@ -125,198 +125,6 @@ function handleKeyDown(event) {
 document.addEventListener("keydown", handleKeyDown);
 
 // ---------- 書籤功能 ----------
-// ---- 常數設定 ----
-const SYNC_BYTES_PER_ITEM = 8192; // Chrome sync 單一 key 最大可儲存位元組數
-const SYNC_SOFT_LIMIT = 7000; // 分片時的軟限制，留空間避免超標
-const TOMBSTONE_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 墓碑保留 30 天
-const MAX_SYNC_CONTENT_CHARS = 512; // 影子版本中 content 最多保留的字元數
-
-// ---- 工具函式 ----
-// 計算物件序列化後的大小（bytes）
-function sizeBytes(obj) {
-  return new Blob([JSON.stringify(obj)]).size;
-}
-// 生成分片索引 key
-function idxKey(prefix) {
-  return `${prefix}::idx`;
-}
-// 生成單一分片 key
-function shardKey(prefix, i) {
-  return `${prefix}::${i}`;
-}
-
-// 補齊缺少欄位的資料，確保每筆都有完整結構
-function withDefaults(item) {
-  return {
-    id: item.id,
-    content: item.content ?? "",
-    role: item.role ?? "unknown",
-    hashtags: Array.isArray(item.hashtags) ? item.hashtags : [],
-    deleted: !!item.deleted,
-    updatedAt: typeof item.updatedAt === "number" ? item.updatedAt : 0,
-    __shadow: !!item.__shadow,
-  };
-}
-
-// 建立影子版本（截短 content）用於 sync 儲存
-function toShadow(item) {
-  const it = withDefaults(item);
-  return {
-    ...it,
-    content: (it.content || "").slice(0, MAX_SYNC_CONTENT_CHARS),
-    __shadow: true,
-  };
-}
-
-// 取較長內容，避免影子覆蓋完整內容
-function takeRicherContent(base, other) {
-  const bc = (base.content || "").length;
-  const oc = (other.content || "").length;
-  if (oc > bc) base.content = other.content;
-  return base;
-}
-
-// 合併兩筆相同 id 的資料（取較新版本、hashtags 聯集）
-function mergeItems(a, b) {
-  const A = withDefaults(a),
-    B = withDefaults(b);
-
-  // 新舊決定以 updatedAt 為準
-  if (A.updatedAt !== B.updatedAt) {
-    const newer = A.updatedAt > B.updatedAt ? A : B;
-    const older = newer === A ? B : A;
-    return takeRicherContent({ ...newer }, older);
-  }
-
-  // 若時間相同，hashtags 聯集，刪除狀態 OR 合併
-  const hs = Array.from(
-    new Set([...(A.hashtags || []), ...(B.hashtags || [])])
-  );
-  const deleted = !!(A.deleted || B.deleted);
-  const base = { ...A, hashtags: hs, deleted };
-  return takeRicherContent(base, B);
-}
-
-// 合併 local + sync 清單，並移除過期墓碑
-function mergeLists(listA = [], listB = []) {
-  const map = new Map();
-  [...listA, ...listB].forEach((raw) => {
-    const it = withDefaults(raw);
-    const prev = map.get(it.id);
-    map.set(it.id, prev ? mergeItems(prev, it) : it);
-  });
-  const now = Date.now();
-  return Array.from(map.values()).filter(
-    (it) =>
-      !(it.deleted && it.updatedAt && now - it.updatedAt > TOMBSTONE_TTL_MS)
-  );
-}
-
-// ---- sync sharding helpers ----
-// 將清單轉成適合寫入 sync 的版本（超過軟限制會轉影子版本）ㄋ
-function makeSyncShadowList(list) {
-  return list.map((it) => {
-    const full = withDefaults(it);
-    if (sizeBytes(full) > SYNC_SOFT_LIMIT) return toShadow(full);
-    return full;
-  });
-}
-
-// 從 sync 讀取完整分片資料
-async function syncGetAll(prefix) {
-  const key = idxKey(prefix);
-  const { [key]: idx = [] } = await chrome.storage.sync.get([key]);
-  if (!Array.isArray(idx) || idx.length === 0) return [];
-  const shardKeys = idx.map((i) => shardKey(prefix, i));
-  const res = await chrome.storage.sync.get(shardKeys);
-  const out = [];
-  for (const k of shardKeys) out.push(...(res[k] || []));
-  return out;
-}
-
-// 寫入 sync：將清單拆分成多個 shard，同時更新索引
-async function syncSetShards(prefix, list) {
-  const safeList = makeSyncShadowList(list);
-  const shards = [];
-  let cur = [];
-  for (const item of safeList) {
-    const probe = [...cur, item];
-    if (sizeBytes(probe) > SYNC_SOFT_LIMIT) {
-      if (cur.length === 0) {
-        shards.push([item]);
-        cur = [];
-      } else {
-        shards.push(cur);
-        cur = [item];
-      }
-    } else {
-      cur = probe;
-    }
-  }
-  if (cur.length) shards.push(cur);
-
-  const indexK = idxKey(prefix);
-  const batch = { [indexK]: shards.map((_, i) => i) };
-  const used = new Set();
-
-  shards.forEach((arr, i) => {
-    const k = shardKey(prefix, i);
-    used.add(k);
-    batch[k] = arr;
-  });
-
-  const prev = await chrome.storage.sync.get([indexK]);
-  const prevIdx = prev[indexK] || [];
-  const obsolete = prevIdx
-    .map((i) => shardKey(prefix, i))
-    .filter((k) => !used.has(k));
-
-  await chrome.storage.sync.set(batch);
-  if (obsolete.length) await chrome.storage.sync.remove(obsolete);
-}
-
-// ---- public API ----
-// 寫入 sync：將清單拆分成多個 shard，同時更新索引
-async function dualGet(key) {
-  const [loc, synList] = await Promise.all([
-    chrome.storage.local.get([key]),
-    syncGetAll(key),
-  ]);
-  const merged = mergeLists(loc[key], synList);
-  await chrome.storage.local.set({ [key]: merged });
-  try {
-    await syncSetShards(key, merged);
-  } catch (e) {}
-  return merged;
-}
-
-// 同時寫入 local 和 sync
-async function dualSet(key, list) {
-  await chrome.storage.local.set({ [key]: list });
-  try {
-    await syncSetShards(key, list);
-  } catch (e) {
-    console.warn("[DualStorage] syncSetShards failed:", e);
-  }
-}
-
-// 監聽 local + sync 指定 key 的變動
-function onKeyStorageChanged(prefix, handler) {
-  chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === "local" && changes[prefix]) {
-      handler();
-      return;
-    }
-    if (area === "sync") {
-      const ks = Object.keys(changes);
-      const hit = ks.some(
-        (k) => k === idxKey(prefix) || k.startsWith(prefix + "::")
-      );
-      if (hit) handler();
-    }
-  });
-}
-
 const SCAN_INTERVAL = 2000; // 動態載入的掃描間隔（毫秒）
 const EMPTY_ICON = "assets/icons/bookmarks.svg";
 const FILL_ICON = "assets/icons/bookmarks-fill.svg";
@@ -357,7 +165,7 @@ chrome.storage.local.get(null, (all) => {
 function fetchBookmarks(cb) {
   const key = getCurrentChatKey();
   if (!key) return cb([]);
-  dualGet(key).then((list) => cb(list));
+  dualRead(key).then((list) => cb(list));
 }
 
 // 將書籤列表存回 local storage
@@ -374,7 +182,8 @@ function isBookmarked(id, list) {
 
 // 切換書籤：若已存在就切換墓碑；不存在就新增
 function toggleBookmark(id, content, role, cb) {
-  fetchBookmarks((list) => {
+  const key = getCurrentChatKey();
+  dualRead(key).then((list) => {
     const now = Date.now();
     const idx = list.findIndex((it) => it.id === id);
     let updated;
@@ -469,7 +278,8 @@ function createBookmarkButton(msg) {
   btn.appendChild(icon);
 
   // 初始設定圖示狀態
-  fetchBookmarks((list) => {
+  const key = getCurrentChatKey();
+  dualRead(key).then((list) => {
     const file = isBookmarked(id, list) ? FILL_ICON : EMPTY_ICON;
     icon.src = chrome.runtime.getURL(file);
   });
@@ -634,16 +444,15 @@ function handleLocationChange() {
   lastPath = location.pathname;
   setTimeout(() => {
     injectExistingBookmarks();
-    updateBookmarkIcons();
+    refreshBookmarkIcons();
   }, 600);
 }
-
-// 綁定自訂事件與 popstate
 window.addEventListener("chatgpt-location-change", handleLocationChange);
 window.addEventListener("popstate", handleLocationChange);
 
 function refreshBookmarkIcons() {
-  fetchBookmarks((list) => {
+  const key = getCurrentChatKey();
+  dualRead(key).then((list) => {
     document.querySelectorAll(".chatgpt-bookmark-btn").forEach((btn) => {
       const id = btn.dataset.bookmarkId;
       const icon = btn.firstElementChild;
@@ -653,29 +462,77 @@ function refreshBookmarkIcons() {
   });
 }
 
-function handleLocationChange() {
-  if (location.pathname === lastPath) return;
-  lastPath = location.pathname;
-  setTimeout(() => {
-    injectExistingBookmarks();
-    refreshBookmarkIcons();
-  }, 600);
+// ----- 滾動高亮樣式 -----
+(function injectHighlightStyle() {
+  if (document.getElementById("gptmark-highlight-style")) return;
+  const style = document.createElement("style");
+  style.id = "gptmark-highlight-style";
+  style.textContent = `
+    .gptmark-highlight {
+      position: relative;
+      outline: 2px solid rgba(0, 89, 255, 0.9);
+      outline-offset: 0px;
+      
+      background-color: rgba(138, 161, 229, 0.25);
+      transition: outline-color 1s ease, background-color 1s ease, box-shadow 1s ease;
+    }
+    .gptmark-highlight.fadeout {
+      outline-color: transparent;
+      background-color: transparent;
+      box-shadow: none;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+const _highlightTimers = new WeakMap();
+function highlightMessage(msgElem) {
+  const timers = _highlightTimers.get(msgElem);
+  if (timers) {
+    clearTimeout(timers.fadeTimer);
+    clearTimeout(timers.clearTimer);
+  }
+  msgElem.classList.remove("gptmark-highlight", "fadeout");
+  msgElem.offsetWidth;
+  msgElem.classList.add("gptmark-highlight");
+  const fadeTimer = setTimeout(() => {
+    msgElem.classList.add("fadeout");
+  }, 1500);
+  const clearTimer = setTimeout(() => {
+    msgElem.classList.remove("gptmark-highlight", "fadeout");
+  }, 3000);
+
+  _highlightTimers.set(msgElem, { fadeTimer, clearTimer });
 }
 
 // ----- 滾動到特定訊息並高亮提示 -----
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "scrollToMessage") {
-    const msgElem = document.querySelector(`[data-message-id="${message.id}"]`);
-    if (msgElem) {
-      msgElem.scrollIntoView({ behavior: "smooth", block: "start" });
-      msgElem.style.transition = "background-color 0.5s";
-      msgElem.style.backgroundColor = "#ffff99";
-      setTimeout(() => {
-        msgElem.style.backgroundColor = "";
-      }, 1000);
-    }
-    sendResponse({ result: "scrolled" });
+  if (message.type !== "scrollToMessage") return;
+  const msgElem = document.querySelector(`[data-message-id="${message.id}"]`);
+  if (!msgElem) {
+    sendResponse?.({ result: "not-found" });
+    return;
   }
+
+  // 滾動到「能到的最高」位置（避免底部空白）
+  const chatContainer = document.querySelector("main div[class*='overflow-y']");
+  if (chatContainer) {
+    const containerRect = chatContainer.getBoundingClientRect();
+    const msgRect = msgElem.getBoundingClientRect();
+    const curTop = chatContainer.scrollTop;
+    const alignTop = curTop + (msgRect.top - containerRect.top);
+    const maxScroll = chatContainer.scrollHeight - chatContainer.clientHeight;
+    const topPadding = 8;
+    const targetTop = Math.max(0, Math.min(alignTop - topPadding, maxScroll));
+    chatContainer.scrollTo({ top: targetTop, behavior: "smooth" });
+  } else {
+    msgElem.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  // 每次點擊都會重新啟動高亮動畫
+  highlightMessage(msgElem);
+
+  sendResponse?.({ result: "scrolled" });
 });
 
 // ----- 回應 sidebar 查詢訊息排序順序 -----
