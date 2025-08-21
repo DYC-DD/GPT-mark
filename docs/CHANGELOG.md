@@ -4,24 +4,20 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
 
 ## [3.2.1] - 2025-08-21
 
-### Changed
-
-- `dual-storage.js`
-
-  - 移除被覆蓋的舊版 `dualRead` 實作，僅保留「必要時才回灌 sync」的版本
-  - 確保 `dualGet()` 在合併後會排程回寫 sync，避免跨裝置同步不一致
-
-- `content.js`
-  - 移除重複定義的 `handleLocationChange` 並統一事件綁定
-  - 刪除殘留的本地工具函式（如 `toShadow`、`mergeItems`、`mergeLists` 等）
-  - 所有資料操作統一改用 `shared/dual-storage.js`，避免邏輯分岐與資料覆蓋風險
-
 ### Fixed
 
-- 修正：
-  - `dualRead` 無法自動寫入 sync 導致跨裝置資料不同步
-  - 事件重複註冊導致部分書籤未正常綁定或刷新
-  - content 模組與 shared 工具邏輯重疊造成維護困難
+- 修正 `dualRead` 未回灌 sync 導致的跨裝置同步不一致問題
+- 修正 `handleLocationChange` 重複定義造成的事件處理不確定性
+- 修正滾動功能在特定情況下無法準確滾至最上 / 最下的問題
+- 修正訊息高亮樣式背景顏色過淡或突兀的顯示問題
+
+### Changed
+
+- 移除覆蓋的舊版 `dualRead`，統一保留「必要時才回灌 sync」的實作方式
+- 確保 `dualRead` 在合併差異後自動排程同步寫入 sync 儲存空間
+- 移除 `content.js` 中未使用的工具函式（如 `toShadow`, `mergeItems`, `mergeLists` 等）
+- 所有資料存取邏輯統一透過 `shared/dual-storage.js` 管理，避免重複維護與覆寫風險
+- 高亮提示樣式調整並加上漸變動畫，提升辨識度與體驗一致性
 
 ## [3.2.0] - 2025-08-15
 

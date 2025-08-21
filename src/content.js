@@ -462,20 +462,77 @@ function refreshBookmarkIcons() {
   });
 }
 
+// ----- 滾動高亮樣式 -----
+(function injectHighlightStyle() {
+  if (document.getElementById("gptmark-highlight-style")) return;
+  const style = document.createElement("style");
+  style.id = "gptmark-highlight-style";
+  style.textContent = `
+    .gptmark-highlight {
+      position: relative;
+      outline: 2px solid rgba(0, 89, 255, 0.9);
+      outline-offset: 0px;
+      
+      background-color: rgba(138, 161, 229, 0.25);
+      transition: outline-color 1s ease, background-color 1s ease, box-shadow 1s ease;
+    }
+    .gptmark-highlight.fadeout {
+      outline-color: transparent;
+      background-color: transparent;
+      box-shadow: none;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
+const _highlightTimers = new WeakMap();
+function highlightMessage(msgElem) {
+  const timers = _highlightTimers.get(msgElem);
+  if (timers) {
+    clearTimeout(timers.fadeTimer);
+    clearTimeout(timers.clearTimer);
+  }
+  msgElem.classList.remove("gptmark-highlight", "fadeout");
+  msgElem.offsetWidth;
+  msgElem.classList.add("gptmark-highlight");
+  const fadeTimer = setTimeout(() => {
+    msgElem.classList.add("fadeout");
+  }, 1500);
+  const clearTimer = setTimeout(() => {
+    msgElem.classList.remove("gptmark-highlight", "fadeout");
+  }, 3000);
+
+  _highlightTimers.set(msgElem, { fadeTimer, clearTimer });
+}
+
 // ----- 滾動到特定訊息並高亮提示 -----
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "scrollToMessage") {
-    const msgElem = document.querySelector(`[data-message-id="${message.id}"]`);
-    if (msgElem) {
-      msgElem.scrollIntoView({ behavior: "smooth", block: "start" });
-      msgElem.style.transition = "background-color 0.5s";
-      msgElem.style.backgroundColor = "#ffff99";
-      setTimeout(() => {
-        msgElem.style.backgroundColor = "";
-      }, 1000);
-    }
-    sendResponse({ result: "scrolled" });
+  if (message.type !== "scrollToMessage") return;
+  const msgElem = document.querySelector(`[data-message-id="${message.id}"]`);
+  if (!msgElem) {
+    sendResponse?.({ result: "not-found" });
+    return;
   }
+
+  // 滾動到「能到的最高」位置（避免底部空白）
+  const chatContainer = document.querySelector("main div[class*='overflow-y']");
+  if (chatContainer) {
+    const containerRect = chatContainer.getBoundingClientRect();
+    const msgRect = msgElem.getBoundingClientRect();
+    const curTop = chatContainer.scrollTop;
+    const alignTop = curTop + (msgRect.top - containerRect.top);
+    const maxScroll = chatContainer.scrollHeight - chatContainer.clientHeight;
+    const topPadding = 8;
+    const targetTop = Math.max(0, Math.min(alignTop - topPadding, maxScroll));
+    chatContainer.scrollTo({ top: targetTop, behavior: "smooth" });
+  } else {
+    msgElem.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  // 每次點擊都會重新啟動高亮動畫
+  highlightMessage(msgElem);
+
+  sendResponse?.({ result: "scrolled" });
 });
 
 // ----- 回應 sidebar 查詢訊息排序順序 -----
