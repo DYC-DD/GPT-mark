@@ -18,6 +18,7 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
 - 移除 `content.js` 中未使用的工具函式（如 `toShadow`, `mergeItems`, `mergeLists` 等）
 - 所有資料存取邏輯統一透過 `shared/dual-storage.js` 管理，避免重複維護與覆寫風險
 - 高亮提示樣式調整並加上漸變動畫，提升辨識度與體驗一致性
+- 更新初始化邏輯，將預設模式改為 system，而非固定的亮/暗模式
 
 ## [3.2.0] - 2025-08-15
 

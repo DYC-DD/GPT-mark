@@ -399,7 +399,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadSidebarBookmarks();
   });
   chrome.storage.local.get(MOOD_KEY, (res) =>
-    applyMood(res[MOOD_KEY] || "dark")
+    applyMood(res[MOOD_KEY] || "system")
   );
 });
 
