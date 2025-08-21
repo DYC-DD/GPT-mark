@@ -2,6 +2,27 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [3.2.1] - 2025-08-21
+
+### Changed
+
+- `dual-storage.js`
+
+  - 移除被覆蓋的舊版 `dualRead` 實作，僅保留「必要時才回灌 sync」的版本
+  - 確保 `dualGet()` 在合併後會排程回寫 sync，避免跨裝置同步不一致
+
+- `content.js`
+  - 移除重複定義的 `handleLocationChange` 並統一事件綁定
+  - 刪除殘留的本地工具函式（如 `toShadow`、`mergeItems`、`mergeLists` 等）
+  - 所有資料操作統一改用 `shared/dual-storage.js`，避免邏輯分岐與資料覆蓋風險
+
+### Fixed
+
+- 修正：
+  - `dualRead` 無法自動寫入 sync 導致跨裝置資料不同步
+  - 事件重複註冊導致部分書籤未正常綁定或刷新
+  - content 模組與 shared 工具邏輯重疊造成維護困難
+
 ## [3.2.0] - 2025-08-15
 
 ### Added

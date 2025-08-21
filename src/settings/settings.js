@@ -99,7 +99,7 @@ async function downloadBookmarks() {
 
   const chats = [];
   for (const pathname of allKeys) {
-    const merged = await dualGet(pathname);
+    const merged = await dualRead(pathname);
     const messages = merged.map(withDefaults).filter((m) => !m.deleted);
     if (messages.length === 0) continue;
 
