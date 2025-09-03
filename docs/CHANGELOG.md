@@ -2,6 +2,14 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [3.2.2] - 2025-09-03
+
+### Fixed
+
+- 修正 `lang-control-group` 區塊在側邊欄因內容過多時的 **定位錯誤與滾動重疊問題**
+  - 現在會正確固定在底部，不會因滾動而被遮擋或錯位
+  - 同時避免遮住部分書籤內容
+
 ## [3.2.1] - 2025-08-21
 
 ### Fixed
