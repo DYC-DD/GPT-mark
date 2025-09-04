@@ -2,6 +2,67 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [3.2.2] - 2025-09-03
+
+### Fixed
+
+- 修正 `lang-control-group` 區塊在側邊欄因內容過多時的 **定位錯誤與滾動重疊問題**
+  - 現在會正確固定在底部，不會因滾動而被遮擋或錯位
+  - 同時避免遮住部分書籤內容
+
+## [3.2.1] - 2025-08-21
+
+### Fixed
+
+- 修正 `dualRead` 未回灌 sync 導致的跨裝置同步不一致問題
+- 修正 `handleLocationChange` 重複定義造成的事件處理不確定性
+- 修正滾動功能在特定情況下無法準確滾至最上 / 最下的問題
+- 修正訊息高亮樣式背景顏色過淡或突兀的顯示問題
+
+### Changed
+
+- 移除覆蓋的舊版 `dualRead`，統一保留「必要時才回灌 sync」的實作方式
+- 確保 `dualRead` 在合併差異後自動排程同步寫入 sync 儲存空間
+- 移除 `content.js` 中未使用的工具函式（如 `toShadow`, `mergeItems`, `mergeLists` 等）
+- 所有資料存取邏輯統一透過 `shared/dual-storage.js` 管理，避免重複維護與覆寫風險
+- 高亮提示樣式調整並加上漸變動畫，提升辨識度與體驗一致性
+- 更新初始化邏輯，將預設模式改為 system，而非固定的亮/暗模式
+
+## [3.2.0] - 2025-08-15
+
+### Added
+
+- 書籤資料改為**同時儲存至 `chrome.storage.local` 與 `chrome.storage.sync`**，支援跨裝置同步。
+- 新增 **資料分片 (sharding)** 機制，避免 `chrome.storage.sync` 單鍵 8KB 限制。
+- 實作 **影子版本 (shadow payload)**，大內容會截短後存於 sync，完整內容保留在 local。
+- 新增 **資料合併與衝突處理**：
+  - 以 `updatedAt` 較新者為準。
+  - `hashtags` 取聯集，避免遺失分類資訊。
+  - 保留較長的內容，避免影子覆蓋完整內容。
+  - 刪除狀態 (墓碑) 以較新者為準，避免誤復活。
+- 為書籤項目新增 `createdAt` 欄位，用於「依加入順序」排序。
+- 復活書籤時自動清空舊的 `hashtags` 並重置 `createdAt`。
+- 新增 **debounce + 指數退避** 寫入機制，避免快速操作觸發 `MAX_WRITE_OPERATIONS_PER_MINUTE` 限制。
+- 側邊欄排序功能支援：
+  - 依加入順序（使用 `createdAt`）
+  - 依聊天順序（依 DOM 順序）
+
+### Changed
+
+- 調整 `content.js` 與 `sidebar.js`：
+  - 共用 `dual-storage.js` 工具處理 local + sync 雙存儲邏輯。
+  - 監聽當前聊天室 key 的 local + sync 變動，即時刷新 UI。
+  - SPA（單頁應用）聊天室切換時，自動重綁監聽器並更新書籤狀態。
+- 更新 `settings.js` 匯出功能，輸出前先合併 local + sync 資料，確保結果為最新同步版本。
+
+### Fixed
+
+- 修正新增/刪除書籤速度過快時的同步錯誤與 quota 超限問題。
+- 修正「依加入順序」排序未正確依新增時間排列的問題。
+- 修正取消書籤後再次加入仍保留舊 `hashtags` 的問題。
+- 修正書籤按鈕插入時的競態條件問題，避免初始化階段重複渲染或錯誤顯示
+- 修復從其他聊天室切換回主頁時，側邊欄未正確清除書籤內容的問題（避免顯示殘留資料）
+
 ## [3.1.0] - 2025-07-29
 
 ### Added

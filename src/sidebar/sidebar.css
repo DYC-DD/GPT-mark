@@ -1,9 +1,18 @@
 @import url("https://fonts.googleapis.com/css2?family=Chiron+Hei+HK:ital,wght@0,200..900;1,200..900&display=swap");
 
+html,
+body {
+  height: 100%;
+}
+
 body {
   font-family: "Chiron Hei HK", sans-serif;
   padding: 10px;
   margin: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   transition: background-color 0.3s, color 0.3s;
 }
 
@@ -176,6 +185,15 @@ body.dark .hashtag-item.selected {
   color: #ffffff;
 }
 
+/* 書籤列表 */
+#bookmark-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding-bottom: 18px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
 /* 書籤內的標籤按鈕 */
 .bookmark .tag-btn {
   position: absolute;
@@ -278,13 +296,14 @@ body.dark .remove-tag-btn:hover {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  margin-top: 12px;
-  position: absolute;
-  bottom: 10px;
-  left: 0;
-  width: 100%;
-  padding: 4px 0;
-  background: transparent;
+  padding: 12px 0;
+  position: sticky;
+  bottom: 0;
+  background: inherit;
+  border-top: 1px dashed rgba(0, 0, 0, 0.05);
+}
+body.dark #lang-control-group {
+  border-top-color: rgba(255, 255, 255, 0.05);
 }
 
 /* 語言選單 */
