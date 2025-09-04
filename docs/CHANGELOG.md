@@ -2,6 +2,13 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [1.2.0] - 2025-09-05
+
+### Added
+
+- 實作首次載入時，若 URL 含有 hash 會自動滾動到對應區塊。
+- 新增 ScrollSpy 功能，滾動時會更新導覽列的活躍狀態。
+
 ## [1.1.0] - 2025-08-19
 
 ### Added
