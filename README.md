@@ -98,6 +98,14 @@
 }
 ```
 
+## FAQ
+
+| 語言        | FAQ Link                                                                                                        |
+| ----------- | --------------------------------------------------------------------------------------------------------------- |
+| 🇹🇼 繁體中文 | [![FAQ](https://img.shields.io/badge/FAQ-常見問題-blue)](https://dyc-dd.github.io/GPT-mark/?lng=zh-TW#faq)      |
+| 🇺🇸 English  | [![FAQ](https://img.shields.io/badge/FAQ-Questions-brightgreen)](https://dyc-dd.github.io/GPT-mark/?lng=en#faq) |
+| 🇯🇵 日本語   | [![FAQ](https://img.shields.io/badge/FAQ-よくある質問-orange)](https://dyc-dd.github.io/GPT-mark/?lng=ja#faq)   |
+
 ## 注意事項
 
 > - 本擴充功能僅作用於 [ChatGPT 官方網站](https://chatgpt.com/)
