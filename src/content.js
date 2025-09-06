@@ -146,6 +146,48 @@ function getCurrentChatKey() {
   return p;
 }
 
+// ---- 舊 sync 分片一次性搬家：把 /g/.../c/<id>::* → /c/<id>::* ----
+async function migrateSyncPrefixes() {
+  const all = await chrome.storage.sync.get(null);
+  const updates = {};
+  const toRemove = [];
+  const groups = new Map();
+
+  // 蒐集所有舊前綴群組
+  for (const k of Object.keys(all)) {
+    const m = k.match(/^(\/g\/[^/]+\/c\/[^/:]+)::(idx|\d+)$/);
+    if (!m) continue;
+    const oldPrefix = m[1];
+    const newPrefix = oldPrefix.replace(/^\/g\/[^/]+\/c\//, "/c/");
+    if (!groups.has(oldPrefix)) groups.set(oldPrefix, { newPrefix, idx: [] });
+  }
+
+  // 依據舊 idx 搬 shard，重建新 idx
+  for (const [oldPrefix, { newPrefix }] of groups) {
+    const oldIdxKey = `${oldPrefix}::idx`;
+    const oldIdx = Array.isArray(all[oldIdxKey]) ? all[oldIdxKey] : [];
+    const newIdxKey = `${newPrefix}::idx`;
+
+    // 搬每一個 shard
+    for (const i of oldIdx) {
+      const oldShardKey = `${oldPrefix}::${i}`;
+      const newShardKey = `${newPrefix}::${i}`;
+      if (all[oldShardKey]) {
+        updates[newShardKey] = all[oldShardKey];
+        toRemove.push(oldShardKey);
+      }
+    }
+    // 寫新 idx、清舊 idx
+    updates[newIdxKey] = oldIdx.slice();
+    toRemove.push(oldIdxKey);
+  }
+
+  if (Object.keys(updates).length) {
+    await chrome.storage.sync.set(updates);
+    await chrome.storage.sync.remove(toRemove);
+  }
+}
+
 // ---- 舊資料一次性搬家：把 /g/.../c/<id> → /c/<id> ----
 chrome.storage.local.get(null, (all) => {
   Object.entries(all).forEach(([k, v]) => {
@@ -417,7 +459,8 @@ function observeMoodChange() {
 
 // ----- 啟動流程 -----
 // 等到整個頁面 load 完才開始注入與監聽
-window.addEventListener("load", () => {
+window.addEventListener("load", async () => {
+  await migrateSyncPrefixes();
   injectExistingBookmarks();
   observeAllTurns();
   observeMoodChange();

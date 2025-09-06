@@ -6,6 +6,14 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
 
 ### Fixed
 
+- 修正 `lang-control-group` 區塊滾動時定位錯誤，現在會正確固定在側邊欄底部
+- 修正同步資料時，`dualRead` 對 `sync` 未回灌導致書籤 ID 不一致的問題
+  - 確保跨裝置同步後資料可正確合併與一致
+
+## [3.2.2] - 2025-09-03
+
+### Fixed
+
 - 修正 `lang-control-group` 區塊在側邊欄因內容過多時的 **定位錯誤與滾動重疊問題**
   - 現在會正確固定在底部，不會因滾動而被遮擋或錯位
   - 同時避免遮住部分書籤內容
