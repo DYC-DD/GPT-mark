@@ -2,7 +2,13 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
-## [3.2.2] - 2025-09-03
+## [3.2.4] - 2025-09-07
+
+### Changed
+
+- 將原本於 `chrome://extensions` 中開啟的設定頁（`settings.html`）改為 **popup 彈出式介面** 呈現，無需另開分頁，操作更直覺。
+
+## [3.2.3] - 2025-09-06
 
 ### Fixed
 

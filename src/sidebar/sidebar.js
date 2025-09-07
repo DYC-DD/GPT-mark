@@ -388,10 +388,40 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
   }, 500);
 
-  // 綁定按鈕：設定頁、排序切換、主題讀取
   document
     .getElementById("settings-button")
-    .addEventListener("click", () => chrome.runtime.openOptionsPage());
+    .addEventListener("click", async () => {
+      try {
+        const [tab] = await chrome.tabs.query({
+          active: true,
+          currentWindow: true,
+        });
+        if (!tab?.id) throw new Error("No active tab");
+
+        // 1) 臨時指定此分頁的 popup
+        await chrome.action.setPopup({
+          tabId: tab.id,
+          popup: "src/popup/popup.html",
+        });
+
+        // 2) 立刻開啟（必須在使用者點擊手勢中呼叫）
+        await chrome.action.openPopup();
+
+        // 3) 立刻要求背景程式清掉（比 setTimeout 更可靠）
+        chrome.runtime.sendMessage({
+          type: "CLEAR_ACTION_POPUP_FOR_ACTIVE_TAB",
+        });
+
+        // 可留著當備援：確保就算 SW 沒收到訊息，也會清掉
+        setTimeout(
+          () => chrome.action.setPopup({ tabId: tab.id, popup: "" }),
+          0
+        );
+      } catch {
+        // 後備視窗已移除，因你要求「只開側欄不開小窗」
+      }
+    });
+
   const sortSelect = document.getElementById("sort-order");
   sortSelect.value = getSavedSort();
   sortSelect.addEventListener("change", () => {

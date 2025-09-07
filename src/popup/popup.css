@@ -132,6 +132,18 @@ body.dark .glider {
   transform: translateX(calc(2 * (100% + 12px)));
 }
 
+/* 放在 settings.css 最後 */
+body.popup .settings-container {
+  position: static;
+  top: auto;
+  left: auto;
+  transform: none;
+  margin: 12px auto;
+  max-width: 360px;
+  padding-bottom: 8px;
+  text-align: center;
+}
+
 @media (max-width: 700px) {
   .tabs {
     transform: scale(0.8);
