@@ -2,7 +2,7 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
-## [3.2.2] - 2025-09-03
+## [3.2.3] - 2025-09-06
 
 ### Fixed
 
