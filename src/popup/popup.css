@@ -27,12 +27,11 @@ body {
 }
 
 h2 {
-  margin-bottom: 50px;
   font-size: 34px;
 }
 
 .setting-item {
-  margin: 34px 0;
+  margin: 20px 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -72,16 +71,16 @@ body.dark .tabs {
   justify-content: center;
   gap: 6px;
   flex-shrink: 0;
-  width: 90px;
-  height: 30px;
+  width: 120px;
+  height: 40px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 1.2rem;
   color: var(--fg);
 }
 
 .tab-icon {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   filter: none;
 }
 body.dark .tab-icon {
@@ -108,8 +107,8 @@ body.dark input[type="radio"]:checked + label .tab-icon {
   position: absolute;
   top: 8px;
   left: 8px;
-  width: 90px;
-  height: 30px;
+  width: 120px;
+  height: 40px;
   border-radius: 99px;
   background-color: #e6eef9;
   transition: transform 0.25s ease-out;
@@ -132,15 +131,14 @@ body.dark .glider {
   transform: translateX(calc(2 * (100% + 12px)));
 }
 
-/* 放在 settings.css 最後 */
 body.popup .settings-container {
   position: static;
   top: auto;
   left: auto;
   transform: none;
-  margin: 12px auto;
+  margin: auto;
   max-width: 360px;
-  padding-bottom: 8px;
+  max-height: 300px;
   text-align: center;
 }
 

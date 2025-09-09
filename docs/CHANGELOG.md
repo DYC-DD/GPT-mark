@@ -2,11 +2,20 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
-## [3.2.4] - 2025-09-07
+## [3.2.4] - 2025-09-09
 
 ### Changed
 
-- 將原本於 `chrome://extensions` 中開啟的設定頁（`settings.html`）改為 **popup 彈出式介面** 呈現，無需另開分頁，操作更直覺。
+- 將原本於 `chrome://extensions` 中開啟的設定頁（`settings.html`）改為 **popup 彈出式介面** 呈現
+
+  - 使用者點擊擴充功能 icon 即可開啟設定，無需另開分頁
+  - 使用 `chrome.action.default_popup` 與 `chrome.action.openPopup()` 實現
+  - 側邊欄中的設定按鈕會動態指派 popup，並於點擊後清除綁定避免干擾其他分頁
+
+- 優化 popup 彈窗樣式與互動行為
+- 統一所有語言環境下的插件名稱為 **ChatGPT Mark**
+  - 更新 `_locales/zh_TW/messages.json`、`en/messages.json`、`ja/messages.json` 中的 `name` 欄位
+  - 將原本名稱如「ChatGPT 書籤」改為一致的英文命名，便於辨識與國際化
 
 ## [3.2.3] - 2025-09-06
 
