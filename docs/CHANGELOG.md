@@ -2,6 +2,14 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [3.2.3] - 2025-09-06
+
+### Fixed
+
+- 修正 `lang-control-group` 區塊滾動時定位錯誤，現在會正確固定在側邊欄底部
+- 修正同步資料時，`dualRead` 對 `sync` 未回灌導致書籤 ID 不一致的問題
+  - 確保跨裝置同步後資料可正確合併與一致
+
 ## [3.2.2] - 2025-09-03
 
 ### Fixed
