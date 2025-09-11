@@ -16,6 +16,7 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
 - 統一所有語言環境下的插件名稱為 **ChatGPT Mark**
   - 更新 `_locales/zh_TW/messages.json`、`en/messages.json`、`ja/messages.json` 中的 `name` 欄位
   - 將原本名稱如「ChatGPT 書籤」改為一致的英文命名，便於辨識與國際化
+- 修改整體字體樣式為「Google Sans Code」
 
 ## [3.2.3] - 2025-09-06
 
