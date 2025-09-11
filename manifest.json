@@ -1,17 +1,17 @@
 {
   "manifest_version": 3,
   "default_locale": "zh_TW",
-  "version": "3.2.3",
+  "version": "3.2.4",
   "name": "__MSG_name__",
   "description": "__MSG_description__",
-  "options_ui": {
-    "page": "src/settings/settings.html",
-    "open_in_tab": true
-  },
   "permissions": ["activeTab", "storage", "tabs", "sidePanel", "contextMenus"],
   "action": {
     "default_icon": "assets/logo/GPT-pin16.png",
-    "default_title": "ChatGPT Bookmark"
+    "default_title": "ChatGPT Bookmark",
+    "default_popup": "src/popup/popup.html"
+  },
+  "side_panel": {
+    "default_path": "src/sidebar/sidebar.html"
   },
   "host_permissions": ["https://chat.openai.com/*", "https://chatgpt.com/*"],
   "content_scripts": [
