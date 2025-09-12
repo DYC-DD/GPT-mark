@@ -43,23 +43,29 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 // ----- 主題切換功能 -----
 // 讀取儲存的主題 預設 dark
-function getSavedMood(callback) {
-  chrome.storage.local.get([MOOD_KEY], (res) => {
-    callback(res[MOOD_KEY] || "dark");
-  });
+async function getSavedMood(callback) {
+  callback(await dualGetSetting(MOOD_KEY, "system"));
 }
+let _mqListener = null;
 // 根據 mood 參數套用頁面主題
 function applyMood(mood) {
   document.body.classList.remove("light", "dark");
+  // 若已有 system 監聽，先解除
+  if (_mqListener) {
+    _mqListener.mq.removeEventListener("change", _mqListener.fn);
+    _mqListener = null;
+  }
+
   if (mood === "system") {
     // 依系統動態監聽切換
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    const actual = mq.matches ? "dark" : "light";
-    document.body.classList.add(actual);
-    mq.addEventListener("change", (e) => {
+    document.body.classList.add(mq.matches ? "dark" : "light");
+    const fn = (e) => {
       document.body.classList.toggle("dark", e.matches);
       document.body.classList.toggle("light", !e.matches);
-    });
+    };
+    mq.addEventListener("change", fn);
+    _mqListener = { mq, fn };
   } else {
     // 明確指定 light / dark
     document.body.classList.add(mood);
@@ -69,12 +75,12 @@ function applyMood(mood) {
 function toggleMood() {
   getSavedMood((current) => {
     const next = current === "light" ? "dark" : "light";
-    chrome.storage.local.set({ [MOOD_KEY]: next });
+    dualSetSetting(MOOD_KEY, next);
   });
 }
 // 監聽主題變動並立即套用新主題
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes[MOOD_KEY]) {
+  if ((area === "local" || area === "sync") && changes[MOOD_KEY]) {
     applyMood(changes[MOOD_KEY].newValue);
   }
 });
@@ -100,7 +106,7 @@ function applyMessages() {
 }
 // 監聽外部語系變動
 chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === "local" && changes[LANGUAGE_KEY]) {
+  if ((area === "local" || area === "sync") && changes[LANGUAGE_KEY]) {
     const newLang = changes[LANGUAGE_KEY].newValue;
     loadMessages(newLang).then(applyMessages);
   }
@@ -344,10 +350,7 @@ function initCurrentKeyAndLoad() {
 // 頁面載入後執行一次初始化，並每＿秒檢查路徑與空白狀態
 document.addEventListener("DOMContentLoaded", async () => {
   // 載入語系與套用文字
-  const { [LANGUAGE_KEY]: storedLang } = await chrome.storage.local.get(
-    LANGUAGE_KEY
-  );
-  const lang = storedLang || "zh";
+  const lang = await dualGetSetting(LANGUAGE_KEY, "zh");
   await loadMessages(lang);
   applyMessages();
 
@@ -428,9 +431,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     saveSort(sortSelect.value);
     loadSidebarBookmarks();
   });
-  chrome.storage.local.get(MOOD_KEY, (res) =>
-    applyMood(res[MOOD_KEY] || "system")
-  );
+  applyMood(await dualGetSetting(MOOD_KEY, "system"));
 });
 
 // ----- 滾動按鈕功能 -----
