@@ -60,7 +60,7 @@
 
 以下為 ChatGPT Mark 的實際操作示意：
 
-[![Watch on YouTube](https://img.shields.io/badge/YouTube-Demo%20video-red?logo=youtube)](https://www.youtube.com/watch?v=0Bg-5DXAdg0)
+[![Watch on YouTube](https://img.shields.io/badge/YouTube-Demo%20video-red?logo=youtube)](https://youtu.be/kISToM2FhVg)
 
 ## 匯出 JSON 結構
 
