@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import "./Features.css";
 
 const VIDEO_SRC =
-  "https://www.youtube.com/embed/0Bg-5DXAdg0?enablejsapi=1&rel=0";
+  "https://www.youtube.com/embed/kISToM2FhVg?enablejsapi=1&rel=0";
 
 const Features = () => {
   const iframeRef = useRef(null);
