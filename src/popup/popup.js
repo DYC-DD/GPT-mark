@@ -27,40 +27,52 @@ function applyMessages() {
 async function setLanguage(lang) {
   await loadMessages(lang);
   applyMessages();
-  chrome.storage.local.set({ [LANGUAGE_KEY]: lang });
+  dualSetSetting(LANGUAGE_KEY, lang);
 }
 
 // ----- mood -----
+let _mqListener = null;
 // 根據 mode 套用主題，並存到 storage
 function applyRadioMood(mode) {
   document.body.classList.remove("light", "dark");
+  if (_mqListener) {
+    _mqListener.mq.removeEventListener("change", _mqListener.fn);
+    _mqListener = null;
+  }
+
   if (mode === "dark" || mode === "light") {
     document.body.classList.add(mode);
   } else {
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
-    document.body.classList.toggle("dark", mq.matches);
-    document.body.classList.toggle("light", !mq.matches);
-    mq.addEventListener("change", (ev) => {
+    document.body.classList.add(mq.matches ? "dark" : "light");
+    const fn = (ev) => {
       document.body.classList.toggle("dark", ev.matches);
       document.body.classList.toggle("light", !ev.matches);
-    });
+    };
+    mq.addEventListener("change", fn);
+    _mqListener = { mq, fn };
   }
-  chrome.storage.local.set({ [MOOD_KEY]: mode });
+  dualSetSetting(MOOD_KEY, mode);
 }
 
 // ----- 初始化設定 -----
+["sidebar-language", "sidebar-mood"].forEach(async (k) => {
+  const [loc, syn] = await Promise.all([
+    chrome.storage.local.get([k]),
+    chrome.storage.sync.get([k]),
+  ]);
+  if (syn[k] === undefined && loc[k] !== undefined) {
+    await chrome.storage.sync.set({ [k]: loc[k] });
+  }
+});
 async function initSettings() {
   // 載入並套用語系
-  const { [LANGUAGE_KEY]: savedLang } = await chrome.storage.local.get(
-    LANGUAGE_KEY
-  );
-  const lang = savedLang || "zh";
+  const lang = await dualGetSetting(LANGUAGE_KEY, "zh");
   document.getElementById(`lang-${lang}`).checked = true;
   await setLanguage(lang);
 
   // 載入並套用主題
-  const { [MOOD_KEY]: savedMood } = await chrome.storage.local.get(MOOD_KEY);
-  const mood = savedMood || "system";
+  const mood = await dualGetSetting(MOOD_KEY, "system");
   document.getElementById(`radio-${mood}`).checked = true;
   applyRadioMood(mood);
 
