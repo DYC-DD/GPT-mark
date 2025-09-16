@@ -259,9 +259,48 @@ function onKeyStorageChanged(prefix, handler) {
   });
 }
 
+// ---- Settings (simple key-value) helpers ----
+async function dualGetSetting(key, fallback) {
+  const [loc, syn] = await Promise.all([
+    chrome.storage.local.get([key]),
+    chrome.storage.sync.get([key]),
+  ]);
+  // sync 優先，其次 local，最後 fallback
+  const hasSyn = Object.prototype.hasOwnProperty.call(syn, key);
+  const hasLoc = Object.prototype.hasOwnProperty.call(loc, key);
+  let val = hasSyn ? syn[key] : hasLoc ? loc[key] : fallback;
+
+  // 雙向補寫，確保兩邊一致（不會造成回圈）
+  const writes = [];
+  if (!hasSyn && hasLoc)
+    writes.push(chrome.storage.sync.set({ [key]: loc[key] }));
+  if (!hasLoc || loc[key] !== val)
+    writes.push(chrome.storage.local.set({ [key]: val }));
+  if (writes.length) await Promise.all(writes);
+
+  return val;
+}
+
+async function dualSetSetting(key, value) {
+  await Promise.all([
+    chrome.storage.local.set({ [key]: value }),
+    chrome.storage.sync.set({ [key]: value }),
+  ]);
+}
+
+// 單一 key 變動監聽（local/sync 皆觸發）
+function onSettingChangedKey(key, handler) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (changes[key]) handler(changes[key].newValue, area);
+  });
+}
+
 // 將重要方法掛到全域
 self.dualRead = dualRead;
 self.withDefaults = withDefaults;
 self.dualGet = dualGet;
 self.dualSet = dualSet;
 self.onKeyStorageChanged = onKeyStorageChanged;
+self.dualGetSetting = dualGetSetting;
+self.dualSetSetting = dualSetSetting;
+self.onSettingChangedKey = onSettingChangedKey;

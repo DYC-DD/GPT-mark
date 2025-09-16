@@ -2,6 +2,14 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [3.2.5] - 2025-09-12
+
+### Changed
+
+- 將語言 (`LANGUAGE_KEY`) 與主題 (`MOOD_KEY`) 設定儲存位置從 `local` 改為 `sync`，支援多裝置同步偏好
+  - 在 popup.html 中修改切換語言 / 主題設定邏輯，確保會同步儲存至 `chrome.storage.sync`
+  - 可在不同電腦間同步語系與主題偏好，不需每次手動重設
+
 ## [3.2.4] - 2025-09-09
 
 ### Changed
