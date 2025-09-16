@@ -265,7 +265,7 @@ function renderList(list) {
     const fullText = item.content || "";
     const displayText =
       fullText.length > MAX_CONTENT_LENGTH
-        ? fullText.slice(0, MAX_CONTENT_LENGTH) + "  . . ."
+        ? fullText.slice(0, MAX_CONTENT_LENGTH) + " ......"
         : fullText;
     const div = document.createElement("div");
     div.className = "bookmark";
