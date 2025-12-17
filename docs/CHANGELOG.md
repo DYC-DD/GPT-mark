@@ -2,6 +2,25 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [3.2.6] - 2025-12-17
+
+### Fixed
+
+- 修正 ChatGPT 前端更新後，因可滾動容器（scroll container）選取失準，導致以下功能失效的問題：
+  - 點擊書籤無法捲動到對應訊息
+  - `Scroll to top` / `Scroll to bottom` 按鈕無法捲動到頂部或底部
+- 改用更穩定的方式取得聊天室主要捲動容器：
+  - 優先從 `thread-bottom-container` / `thread-bottom` 反推最近的可捲動祖先節點
+  - 若不存在則從任一訊息節點（`[data-message-id]`）反推
+  - 最後才 fallback：在 `main` 中挑選高度最大的可捲動元素
+- 統一滾動行為的容器來源，避免因 ChatGPT DOM 結構／class 變動造成再次誤捲到錯誤元素
+
+### Refactored
+
+- 重構 `content.js`：
+  - 將「捲動容器偵測」抽成獨立 helper（`getChatScrollContainer()`），並移除硬編碼的 class selector
+  - 調整程式碼分區與命名，降低重複邏輯與提升可讀性（不影響既有功能）
+
 ## [3.2.5] - 2025-09-12
 
 ### Changed
