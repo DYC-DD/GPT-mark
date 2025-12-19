@@ -15,7 +15,7 @@
     FILL_ICON: "assets/icons/bookmarks-fill.svg",
 
     // 捲動定位時的 top padding，避免貼到容器最頂
-    SCROLL_TOP_PADDING: 8,
+    SCROLL_TOP_PADDING: 60,
 
     // 注入書籤按鈕重試次數/間隔
     INJECT_RETRY_TIMES: 5,
