@@ -38,16 +38,16 @@
 
 ## 安裝方式
 
-- **正式版（推薦）：**
+- **官方安裝方式（推薦）：**
 
   - 直接從 Chrome 線上應用程式商店安裝：[📥 點此安裝 GPT-Mark](https://chromewebstore.google.com/detail/bhkpgjjgjgdgpbjdfhkljhcefohegooc?utm_source=item-share-cb)
 
-- **新功能 Beta 版：**
+- **開發人員安裝方式：**
 
   1. 下載此專案至您想存放位置（`git clone` 方式）：
 
      ```bash
-     git clone --branch feature/notion git@github.com:DYC-DD/GPT-mark.git
+     git clone git@github.com:DYC-DD/GPT-mark.git
      ```
 
   2. 打開 Chrome 瀏覽器，輸入：`chrome://extensions`
