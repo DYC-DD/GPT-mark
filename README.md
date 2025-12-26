@@ -4,67 +4,70 @@
 
 # [ChatGPT Mark](https://dyc-dd.github.io/GPT-mark/)
 
-**「重點訊息總是被大量回覆淹沒，有用的內容又常在滑動中遺失，怎麼快速標記並精準跳回？」**
+**“Important messages get buried, useful content gets lost while scrolling.”**  
+**“now you can mark and return to them instantly.”**
 
-![GitHub release](https://img.shields.io/github/v/release/DYC-DD/GPT-mark) ![License](https://img.shields.io/github/license/DYC-DD/GPT-mark) ![last commit](https://img.shields.io/github/last-commit/DYC-DD/GPT-mark) [![website](https://img.shields.io/badge/website-GPT--Mark-0aaaff)](https://dyc-dd.github.io/GPT-mark/) [![Download](https://img.shields.io/badge/Download-Chrome%20Store-4285F4?style=flat&logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/bhkpgjjgjgdgpbjdfhkljhcefohegooc)
+![GitHub release](https://img.shields.io/github/v/release/DYC-DD/GPT-mark) ![License](https://img.shields.io/github/license/DYC-DD/GPT-mark) ![last commit](https://img.shields.io/github/last-commit/DYC-DD/GPT-mark) [![website](https://img.shields.io/badge/website-GPT--Mark-0aaaff)](https://dyc-dd.github.io/GPT-mark/) [![Download](https://img.shields.io/badge/Download-Chrome%20Store-4285F4?style=flat)](https://chromewebstore.google.com/detail/bhkpgjjgjgdgpbjdfhkljhcefohegooc)
+[![中文](https://img.shields.io/badge/README-%E4%B8%AD%E6%96%87-4285F4?style=flat)](./docs/README.zh-TW.md)
 
 </div>
 
-這是一款為 ChatGPT 網頁介面設計的 Chrome 擴充小工具。為對話加上書籤與快捷傳送功能，支援側邊欄書籤導航、編輯時雙擊 Enter 快速送出訊息，幫助你高效回顧與組織聊天內容！
+A Chrome extension built for the ChatGPT web interface — add bookmarks, navigate with a sidebar, and send messages faster with double-press Enter. Perfect for staying organized and effortlessly revisiting key moments in long conversations.
 
-## 功能說明
+## Feature
 
-**書籤功能**
+**Bookmark**
 
-- 點擊訊息旁的「**書籤按鈕**」即可加入或移除書籤
-- 點選側邊欄書籤即可**自動滾動到該訊息**，並高亮顯示
-- 提供 **依聊天順序 / 加入順序** 排序選項
-- 書籤可新增刪除**自訂的 #hashtag** 以進行分類
-- 側邊欄可**依 #hashtag 過濾**顯示書籤
-- 快速滾動按鈕，平滑動畫滾動至 ChatGPT 對話最上下端
+- Click the **bookmark button** next to any message to add or remove a bookmark
+- Click a bookmark in the sidebar to **auto-scroll to the original message** and highlight it
+- Supports sorting by **chat order** or **bookmark creation order**
+- Add or remove custom **#hashtags** for classification
+- Filter bookmarks in the sidebar by **#hashtags**
+- Quick scroll buttons provide smooth scrolling to the **top / bottom** of the chat
 
-**編輯訊息下快捷傳送**
+**Quick Send While Editing Messages**
 
-- 原本 ChatGPT 編輯訊息時，需手動點擊「送出按鈕」才能傳送
-- 現在只需 **快速雙擊 Enter** 即可快速傳送
-  - `單次 Enter` / `Shift + Enter` 為換行
-  - `雙擊 Enter` 為送出訊息
+- Normally, edited messages in ChatGPT require clicking the **send button** manually
+- Now you can send instantly by **double-pressing Enter**
+  - `Enter` / `Shift + Enter` → New line
+  - `Double Enter` → Send message
 
-**側邊欄與設定頁**
+**Sidebar & Settings**
 
-- 側邊欄支援 **light / dark / system mood** 可手動切換，並記錄偏好
-- 側邊欄支援 **繁體中文、英文、日文**介面自動 / 手動切換
-- 設定頁可匯出所有書籤資料做為備份
+- Sidebar theme supports **Light / Dark / System** modes and remembers your preference
+- Sidebar language supports **Traditional Chinese, English, Japanese** with **auto / manual switching**
+- Settings page lets you **export all bookmark data** for backup purposes
 
-## 安裝方式
+## Installation
 
-- **官方安裝方式（推薦）：**
+- **Official Installation (Recommended):**
 
-  - 直接從 Chrome 線上應用程式商店安裝：[📥 點此安裝 GPT-Mark](https://chromewebstore.google.com/detail/bhkpgjjgjgdgpbjdfhkljhcefohegooc?utm_source=item-share-cb)
+  - Install directly from the Chrome Web Store: [📥 Click here to install GPT-Mark](https://chromewebstore.google.com/detail/bhkpgjjgjgdgpbjdfhkljhcefohegooc?utm_source=item-share-cb)
 
-- **開發人員安裝方式：**
+- **Developer Installation:**
 
-  1. 下載此專案至您想存放位置（`git clone` 方式）：
+  1. Clone this repository to your preferred directory:
 
      ```bash
      git clone git@github.com:DYC-DD/GPT-mark.git
      ```
 
-  2. 打開 Chrome 瀏覽器，輸入：`chrome://extensions`
-  3. 開啟右上角的「開發人員模式」
-  4. 點擊「載入未封裝項目」
-  5. 選取此專案資料夾
-  6. 開啟或重新整理 [ChatGPT](https://chatgpt.com/) 即可使用
+  2. Open Chrome and navigate to: `chrome://extensions`
+  3. Enable Developer mode (top right corner)
+  4. Click Load unpacked
+  5. Select the project folder you just cloned
+  6. Open or refresh [ChatGPT](https://chatgpt.com/) to begin using the extension
 
-## Demo 預覽
+## Demo
 
-以下為 ChatGPT Mark 的實際操作示意：
+Below is a demonstration of ChatGPT Mark in action:
 
 [![Watch on YouTube](https://img.shields.io/badge/YouTube-Demo%20video-red?logo=youtube)](https://youtu.be/kISToM2FhVg)
 
-## 匯出 JSON 結構
+## Exported JSON Structure
 
-匯出的書籤資料結構為 JSON (`chatgpt_bookmarks.json`)，範例格式如下：
+The exported bookmark data is saved as a JSON file (`chatgpt_bookmarks.json`).  
+A sample structure is shown below:
 
 ```json
 {
@@ -81,14 +84,14 @@
         {
           "id": "057b6385-751d-xxxxxx",
           "role": "User",
-          "content": "一句話介紹 LLM",
+          "content": "Introduce LLM in one sentence.",
           "hashtags": ["AI"],
           "updatedAt": 1755591100546
         },
         {
           "id": "d2c2b291-9ae7-xxxxxx",
           "role": "ChatGPT",
-          "content": "大型語言模型（LLM）是透過訓練大量文本資料來理解與生成自然語言。",
+          "content": "Large Language Models (LLMs) are trained on vast amounts of text data to understand and generate natural language.",
           "hashtags": ["AI", "ML", "DL"],
           "updatedAt": 1755591101233
         }
@@ -100,25 +103,28 @@
 
 ## FAQ
 
-| 語言        | FAQ Link                                                                                                        |
+| Language    | FAQ Link                                                                                                        |
 | ----------- | --------------------------------------------------------------------------------------------------------------- |
-| 🇹🇼 繁體中文 | [![FAQ](https://img.shields.io/badge/FAQ-常見問題-blue)](https://dyc-dd.github.io/GPT-mark/?lng=zh-TW#faq)      |
 | 🇺🇸 English  | [![FAQ](https://img.shields.io/badge/FAQ-Questions-brightgreen)](https://dyc-dd.github.io/GPT-mark/?lng=en#faq) |
+| 🇹🇼 繁體中文 | [![FAQ](https://img.shields.io/badge/FAQ-常見問題-blue)](https://dyc-dd.github.io/GPT-mark/?lng=zh-TW#faq)      |
 | 🇯🇵 日本語   | [![FAQ](https://img.shields.io/badge/FAQ-よくある質問-orange)](https://dyc-dd.github.io/GPT-mark/?lng=ja#faq)   |
 
-## 注意事項
+## Notes
 
-> - 本擴充功能僅作用於 [ChatGPT 官方網站](https://chatgpt.com/)
-> - 書籤與設定資料的儲存方式：
->   - 預設儲存於本機：使用 `chrome.storage.local`
->   - 跨裝置同步：同時寫入 `chrome.storage.sync`，在登入同一 Google 帳號的 Chrome 瀏覽器間自動同步。
->     - 需啟用 Chrome 的「同步」功能，並包含擴充功能資料。
->     - 若未啟用同步，資料僅會保存在本機，不影響使用。
-> - 資料僅存在於你的 Google 帳號與裝置中，本工具不會將任何資料上傳或分享給作者或第三方伺服器。
+> [!NOTE]
+>
+> - his extension only works on the official ChatGPT website: [ChatGPT](https://chatgpt.com/)
+> - Bookmark and settings data storage:
+>   - Local storage (default): saved using `chrome.storage.local`.
+>   - Cross-device sync: also written to `chrome.storage.sync`, allowing automatic synchronization across Chrome browsers logged into the same Google account.
+>     - Chrome’s Sync feature must be enabled, including extension data.
+>     - If Sync is disabled, all data will remain local without affecting functionality.
+> - All data is stored only in your Google account and local devices.
+>   This extension does not upload or transmit any data to the developer or any third-party servers.
 
-## 更新紀錄
+## Changelog
 
-查看完整更新紀錄：[CHANGELOG](./docs/CHANGELOG.md)
+For the full update history, please refer to the [CHANGELOG](./docs/CHANGELOG.md)
 
 ## License
 
