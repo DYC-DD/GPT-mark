@@ -2,6 +2,24 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [3.2.7] - 2026-03-24
+
+### Fixed
+
+- 修正 ChatGPT 前端更新後，書籤按鈕因對話 turn 容器結構變更而消失的問題
+  - 舊版依賴 `article` 的注入邏輯，現已相容新版 `section[data-testid="conversation-turn-*"]` / `data-turn-id` 結構
+- 改用更穩定的訊息與操作列定位方式：
+  - 以 `data-turn-id`、`data-message-id` 與 `copy-turn-action-button` 作為主要注入錨點
+  - 降低因 DOM 層級或 class 名稱調整造成書籤按鈕失效的風險
+- 補強書籤按鈕注入流程，修正 ChatGPT hydration、懶載入或屬性延後掛載時，按鈕未成功渲染的情況
+
+### Changed
+
+- 書籤按鈕樣式改為沿用 ChatGPT 原生操作列按鈕 class，讓新版介面下的尺寸、間距與 hover 效果更一致
+- 調整 content script 初始化時機：
+  - 即使腳本注入時間晚於頁面 `load`，也能正確執行初始化
+  - 提升重新整理頁面與 SPA 路由切換後的穩定性
+
 ## [3.2.6] - 2025-12-17
 
 ### Fixed

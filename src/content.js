@@ -367,47 +367,97 @@
       : "brightness(0)";
   }
 
+  const TURN_SELECTOR =
+    '[data-testid^="conversation-turn-"], section[data-turn-id], article, [data-turn-id]';
+  const MESSAGE_SELECTOR = "[data-message-id]";
+  const COPY_ACTION_SELECTOR = '[data-testid="copy-turn-action-button"]';
+
+  function getTurnContainer(startNode) {
+    if (!(startNode instanceof Element)) return null;
+    if (startNode.matches(TURN_SELECTOR)) return startNode;
+    return startNode.closest(TURN_SELECTOR);
+  }
+
+  function getTurnMessageNode(startNode) {
+    const turn = getTurnContainer(startNode);
+    if (!turn) return null;
+
+    const turnId = turn.getAttribute("data-turn-id");
+    if (turnId) {
+      const exactMsg = turn.querySelector(
+        `[data-message-id="${CSS.escape(turnId)}"]`
+      );
+      if (exactMsg) return exactMsg;
+    }
+
+    return turn.querySelector(MESSAGE_SELECTOR);
+  }
+
   // 建立書籤按鈕並綁定事件
-  function createBookmarkButton(msg) {
+  function createBookmarkButton(msg, hostButton) {
     const id = msg?.dataset?.messageId;
     if (!id) return null;
 
     // 已存在同 id 按鈕就不再建立（避免重複）
     if (
-      document.querySelector(`.chatgpt-bookmark-btn[data-bookmark-id="${id}"]`)
+      document.querySelector(
+        `.chatgpt-bookmark-btn[data-bookmark-id="${CSS.escape(id)}"]`
+      )
     ) {
       return null;
     }
 
     // 按鈕本體
     const btn = document.createElement("button");
+    btn.type = "button";
     btn.className = "chatgpt-bookmark-btn";
     btn.title = "書籤";
+    btn.setAttribute("aria-label", "切換書籤");
     btn.setAttribute("data-bookmark-id", id);
 
-    Object.assign(btn.style, {
-      width: "32px",
-      height: "32px",
-      background: "transparent",
-      border: "none",
-      borderRadius: "8px",
-      padding: "0",
-      display: "inline-flex",
-      alignItems: "center",
-      justifyContent: "center",
-      cursor: "pointer",
-      transition: "background-color 0.2s",
-    });
+    if (hostButton instanceof HTMLElement) {
+      btn.className = `${hostButton.className} chatgpt-bookmark-btn`;
+      btn.style.flexShrink = "0";
+    } else {
+      Object.assign(btn.style, {
+        width: "32px",
+        height: "32px",
+        background: "transparent",
+        border: "none",
+        borderRadius: "8px",
+        padding: "0",
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        cursor: "pointer",
+        transition: "background-color 0.2s",
+        flexShrink: "0",
+      });
+    }
+
+    const iconWrap = document.createElement("span");
+    if (hostButton?.firstElementChild instanceof HTMLElement) {
+      iconWrap.className = hostButton.firstElementChild.className;
+    } else {
+      Object.assign(iconWrap.style, {
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: "100%",
+        height: "100%",
+      });
+    }
 
     // icon
     const icon = document.createElement("img");
     Object.assign(icon.style, {
-      width: "16px",
-      height: "16px",
+      width: hostButton ? "18px" : "16px",
+      height: hostButton ? "18px" : "16px",
       pointerEvents: "none",
       filter: getIconFilter(),
     });
-    btn.appendChild(icon);
+    iconWrap.appendChild(icon);
+    btn.appendChild(iconWrap);
 
     // 初始化 icon 狀態
     const key = getCurrentChatKey();
@@ -421,7 +471,10 @@
     }
 
     // 點擊切換書籤
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+
       const content = (msg.innerText || "").trim();
       const role = msg.dataset.messageAuthorRole || "unknown";
       toggleBookmark(id, content, role, (updated) => {
@@ -432,13 +485,15 @@
       });
     });
 
-    // hover
-    btn.addEventListener("mouseenter", () => {
-      btn.style.backgroundColor = getHoverBgColor();
-    });
-    btn.addEventListener("mouseleave", () => {
-      btn.style.backgroundColor = "transparent";
-    });
+    // fallback hover（原生按鈕 class 會自行處理 hover）
+    if (!(hostButton instanceof HTMLElement)) {
+      btn.addEventListener("mouseenter", () => {
+        btn.style.backgroundColor = getHoverBgColor();
+      });
+      btn.addEventListener("mouseleave", () => {
+        btn.style.backgroundColor = "transparent";
+      });
+    }
 
     return btn;
   }
@@ -453,20 +508,18 @@
     const insertNow = () => {
       if (
         document.querySelector(
-          `.chatgpt-bookmark-btn[data-bookmark-id="${id}"]`
+          `.chatgpt-bookmark-btn[data-bookmark-id="${CSS.escape(id)}"]`
         )
       ) {
         return true;
       }
       const curMsg =
         document.querySelector(`[data-message-id="${CSS.escape(id)}"]`) || msg;
-      const turn = curMsg?.closest("article");
+      const turn = getTurnContainer(curMsg);
       if (!turn) return false;
-      const copyBtn = turn.querySelector(
-        '[data-testid="copy-turn-action-button"]'
-      );
+      const copyBtn = turn.querySelector(COPY_ACTION_SELECTOR);
       if (!copyBtn || !copyBtn.parentNode) return false;
-      const btn = createBookmarkButton(curMsg);
+      const btn = createBookmarkButton(curMsg, copyBtn);
       if (!btn) return true;
       copyBtn.parentNode.insertBefore(btn, copyBtn);
       return true;
@@ -490,40 +543,57 @@
   // 為目前頁面所有已渲染訊息注入書籤按鈕
   function injectExistingBookmarks() {
     document
-      .querySelectorAll("[data-message-id]")
+      .querySelectorAll(MESSAGE_SELECTOR)
       .forEach((msg) => tryInjectButton(msg));
+  }
+
+  function handlePotentialBookmarkTarget(node) {
+    if (!(node instanceof HTMLElement)) return;
+
+    if (node.matches(COPY_ACTION_SELECTOR)) {
+      const msg = getTurnMessageNode(node);
+      if (msg) tryInjectButton(msg);
+      return;
+    }
+
+    if (node.matches(TURN_SELECTOR)) {
+      const msg = getTurnMessageNode(node);
+      if (msg) tryInjectButton(msg);
+      return;
+    }
+
+    const nestedCopyBtn = node.querySelector(COPY_ACTION_SELECTOR);
+    if (nestedCopyBtn) {
+      const msg = getTurnMessageNode(nestedCopyBtn);
+      if (msg) tryInjectButton(msg);
+      return;
+    }
+
+    const nestedTurn = node.querySelector(TURN_SELECTOR);
+    if (nestedTurn) {
+      const msg = getTurnMessageNode(nestedTurn);
+      if (msg) tryInjectButton(msg);
+      return;
+    }
+
+    const msgNode = node.matches(MESSAGE_SELECTOR)
+      ? node
+      : node.querySelector(MESSAGE_SELECTOR);
+
+    if (msgNode) tryInjectButton(msgNode);
   }
 
   // 監聽新 turn / 新訊息加入，自動注入書籤按鈕
   function observeAllTurns() {
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
+        if (m.type === "attributes") {
+          handlePotentialBookmarkTarget(m.target);
+          continue;
+        }
+
         for (const node of m.addedNodes) {
-          if (!(node instanceof HTMLElement)) continue;
-
-          if (node.matches('[data-testid="copy-turn-action-button"]')) {
-            const turn = node.closest("article");
-            const msg = turn?.querySelector("[data-message-id]");
-            if (msg) tryInjectButton(msg);
-            continue;
-          }
-
-          const copyBtn = node.querySelector
-            ? node.querySelector('[data-testid="copy-turn-action-button"]')
-            : null;
-
-          if (copyBtn) {
-            const turn = copyBtn.closest("article");
-            const msg = turn?.querySelector("[data-message-id]");
-            if (msg) tryInjectButton(msg);
-            continue;
-          }
-
-          const msgNode = node.matches("[data-message-id]")
-            ? node
-            : node.querySelector("[data-message-id]");
-
-          if (msgNode) tryInjectButton(msgNode);
+          handlePotentialBookmarkTarget(node);
         }
       }
     });
@@ -532,7 +602,7 @@
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ["data-message-id"],
+      attributeFilter: ["data-message-id", "data-testid", "data-turn-id"],
     });
   }
 
@@ -653,7 +723,9 @@
   // ===== runtime messages：sidebar -> content 的控制入口 =====
   // 滾動到指定訊息（並高亮）
   function scrollToMessageId(messageId) {
-    const msgElem = document.querySelector(`[data-message-id="${messageId}"]`);
+    const msgElem = document.querySelector(
+      `[data-message-id="${CSS.escape(messageId)}"]`
+    );
     if (!msgElem) return { ok: false, reason: "not-found" };
 
     const chatContainer = getChatScrollContainer();
@@ -795,8 +867,18 @@
     chrome.runtime.sendMessage({ type: "chatgpt-ready" });
   }
 
-  // 等頁面載入後再 init（與你原本流程一致）
-  window.addEventListener("load", () => {
+  let hasInitialized = false;
+
+  function startInit() {
+    if (hasInitialized) return;
+    hasInitialized = true;
     init().catch((err) => console.error("[GPT-mark] init failed:", err));
-  });
+  }
+
+  // document_idle 有機會晚於 load，因此在頁面已可用時直接初始化
+  if (document.readyState === "loading") {
+    window.addEventListener("load", startInit, { once: true });
+  } else {
+    startInit();
+  }
 })();
