@@ -393,6 +393,16 @@
     return turn.querySelector(MESSAGE_SELECTOR);
   }
 
+  function getBookmarkIconNode(button) {
+    return button?.querySelector("img") || null;
+  }
+
+  function setBookmarkIconSource(iconNode, isFilled) {
+    if (!iconNode) return;
+    const file = isFilled ? CONFIG.FILL_ICON : CONFIG.EMPTY_ICON;
+    iconNode.src = chrome.runtime.getURL(file);
+  }
+
   // 建立書籤按鈕並綁定事件
   function createBookmarkButton(msg, hostButton) {
     const id = msg?.dataset?.messageId;
@@ -456,6 +466,7 @@
       pointerEvents: "none",
       filter: getIconFilter(),
     });
+    setBookmarkIconSource(icon, false);
     iconWrap.appendChild(icon);
     btn.appendChild(iconWrap);
 
@@ -463,10 +474,7 @@
     const key = getCurrentChatKey();
     if (key) {
       dualRead(key).then((list) => {
-        const file = isBookmarked(id, list)
-          ? CONFIG.FILL_ICON
-          : CONFIG.EMPTY_ICON;
-        icon.src = chrome.runtime.getURL(file);
+        setBookmarkIconSource(icon, isBookmarked(id, list));
       });
     }
 
@@ -478,10 +486,7 @@
       const content = (msg.innerText || "").trim();
       const role = msg.dataset.messageAuthorRole || "unknown";
       toggleBookmark(id, content, role, (updated) => {
-        const file = isBookmarked(id, updated)
-          ? CONFIG.FILL_ICON
-          : CONFIG.EMPTY_ICON;
-        icon.src = chrome.runtime.getURL(file);
+        setBookmarkIconSource(icon, isBookmarked(id, updated));
       });
     });
 
@@ -630,11 +635,8 @@
     dualRead(key).then((list) => {
       document.querySelectorAll(".chatgpt-bookmark-btn").forEach((btn) => {
         const id = btn.dataset.bookmarkId;
-        const icon = btn.firstElementChild;
-        const file = isBookmarked(id, list)
-          ? CONFIG.FILL_ICON
-          : CONFIG.EMPTY_ICON;
-        if (icon) icon.src = chrome.runtime.getURL(file);
+        const icon = getBookmarkIconNode(btn);
+        setBookmarkIconSource(icon, isBookmarked(id, list));
       });
     });
   }

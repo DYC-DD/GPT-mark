@@ -2,6 +2,14 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [3.2.8] - 2026-04-20
+
+### Fixed
+
+- 修正新聊天室第一次送出訊息後，書籤操作列 icon 偶發顯示為空白方框的問題
+  - 書籤按鈕建立時，先套用預設空心 icon，避免在 `chatId` 尚未建立完成前出現未設定 `src` 的狀況
+  - 補正路由更新後的 icon 刷新邏輯，改為正確更新按鈕內的 `img` 節點，而非外層包裝元素
+
 ## [3.2.7] - 2026-03-24
 
 ### Fixed
