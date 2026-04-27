@@ -1,51 +1,41 @@
 // ----- 全域設定 -----
+const {
+  CHATGPT_ORIGINS,
+  ICONS,
+  LOCALES,
+  MESSAGE_TYPES,
+  PATHS,
+  STORAGE_KEYS,
+  getChatKeyFromPathname,
+  isAllowedChatOrigin,
+} = self.GPT_MARK;
+
 // 最大書籤顯示字數
 const MAX_CONTENT_LENGTH = 30;
+const SIDEBAR_FALLBACK_POLL_INTERVAL = 5000;
 // 側邊欄排序、主題、語系儲存鍵
-const SORT_KEY = "sidebar-sort-order";
-const MOOD_KEY = "sidebar-mood";
-const LANGUAGE_KEY = "sidebar-language";
+const SORT_KEY = STORAGE_KEYS.SIDEBAR_SORT_ORDER;
+const MOOD_KEY = STORAGE_KEYS.SIDEBAR_MOOD;
+const LANGUAGE_KEY = STORAGE_KEYS.SIDEBAR_LANGUAGE;
 
-// 圖示資源路徑
-const MOON_ICON = "assets/icons/moon.svg";
-const SUN_ICON = "assets/icons/sun.svg";
-const HASHTAG_ICON = "assets/icons/hashtag.svg";
-
-// 語系對應表
-const LOCALE_MAP = { zh: "zh_TW", en: "en", ja: "ja" };
+const HASHTAG_ICON = ICONS.HASHTAG;
 
 // 儲存讀取到的翻譯文字、目前聊天室 key、以及已選的 Hashtag
 let messages = {};
 let CURRENT_CHAT_KEY = null;
 let selectedTags = new Set();
 
-// ----- 路徑規格化 -----
-// 把各種可能的 URL 轉成統一的格式
-const normalizePath = (p) => {
-  // 去掉尾斜線
-  p = p.replace(/\/$/, "");
-  // 如果是群組路徑 /g/.../c/<id>，只保留 /c/<id>
-  const m = p.match(/^\/g\/[^/]+\/c\/([^/]+)$/);
-  if (m) return `/c/${m[1]}`;
-  // 首頁 / 新聊天室（沒有 chatId）
-  if (p === "" || p === "/") return null;
-  return p;
-};
-
 // ----- 等待主頁載入完成並初始化 -----
-let chatReady = false;
 chrome.runtime.onMessage.addListener((msg) => {
-  if (msg.type === "chatgpt-ready") {
-    chatReady = true;
-    initCurrentKeyAndLoad();
+  if (
+    msg.type === MESSAGE_TYPES.CHATGPT_READY ||
+    msg.type === MESSAGE_TYPES.CHATGPT_ROUTE_CHANGED
+  ) {
+    syncActiveTabState();
   }
 });
 
 // ----- 主題切換功能 -----
-// 讀取儲存的主題 預設 dark
-async function getSavedMood(callback) {
-  callback(await dualGetSetting(MOOD_KEY, "system"));
-}
 let _mqListener = null;
 // 根據 mood 參數套用頁面主題
 function applyMood(mood) {
@@ -71,13 +61,6 @@ function applyMood(mood) {
     document.body.classList.add(mood);
   }
 }
-// 切換主題並儲存
-function toggleMood() {
-  getSavedMood((current) => {
-    const next = current === "light" ? "dark" : "light";
-    dualSetSetting(MOOD_KEY, next);
-  });
-}
 // 監聽主題變動並立即套用新主題
 chrome.storage.onChanged.addListener((changes, area) => {
   if ((area === "local" || area === "sync") && changes[MOOD_KEY]) {
@@ -88,7 +71,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // ----- 語言設定功能 -----
 // 讀取指定語系的翻譯訊息
 async function loadMessages(lang) {
-  const loc = LOCALE_MAP[lang] || LOCALE_MAP.zh;
+  const loc = LOCALES[lang] || LOCALES.zh;
   const url = chrome.runtime.getURL(`_locales/${loc}/messages.json`);
   const res = await fetch(url);
   const json = await res.json();
@@ -211,15 +194,13 @@ function loadSidebarBookmarks() {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (!tabs[0]?.id) return renderList(list);
         const origin = new URL(tabs[0].url || "").origin;
-        if (
-          !["https://chat.openai.com", "https://chatgpt.com"].includes(origin)
-        ) {
+        if (!CHATGPT_ORIGINS.includes(origin)) {
           renderList(list);
           return;
         }
         chrome.tabs.sendMessage(
           tabs[0].id,
-          { type: "getChatOrder" },
+          { type: MESSAGE_TYPES.GET_CHAT_ORDER },
           (response) => {
             if (chrome.runtime.lastError) {
               renderList(list);
@@ -275,7 +256,7 @@ function renderList(list) {
     div.addEventListener("click", () => {
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         chrome.tabs.sendMessage(tabs[0].id, {
-          type: "scrollToMessage",
+          type: MESSAGE_TYPES.SCROLL_TO_MESSAGE,
           id: item.id,
         });
       });
@@ -316,38 +297,70 @@ function renderList(list) {
 
 // ----- 初始化 & 監聽路由變化 -----
 let BOUND_KEY = null;
+let unbindBookmarkStorage = null;
 
-function initCurrentKeyAndLoad() {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (!tabs[0]?.url) return;
-    const path = normalizePath(new URL(tabs[0].url).pathname);
-    if (!path) {
-      if (CURRENT_CHAT_KEY !== null) {
-        CURRENT_CHAT_KEY = null;
-        clearSidebar();
-      }
-      return;
-    }
+function bindStorageWatcherForKey(key) {
+  if (BOUND_KEY === key) return;
 
-    if (path !== CURRENT_CHAT_KEY) {
-      CURRENT_CHAT_KEY = path;
+  if (unbindBookmarkStorage) {
+    unbindBookmarkStorage();
+    unbindBookmarkStorage = null;
+  }
 
-      // 綁定對應 key 的 storage 監聽（避免重複綁）
-      if (BOUND_KEY !== CURRENT_CHAT_KEY) {
-        BOUND_KEY = CURRENT_CHAT_KEY;
-        onKeyStorageChanged(CURRENT_CHAT_KEY, () => {
-          renderHashtagList();
-          loadSidebarBookmarks();
-        });
-      }
+  BOUND_KEY = key;
+  if (!BOUND_KEY) return;
 
-      renderHashtagList();
-      loadSidebarBookmarks();
-    }
+  const watchedKey = BOUND_KEY;
+  unbindBookmarkStorage = onKeyStorageChanged(watchedKey, () => {
+    if (CURRENT_CHAT_KEY !== watchedKey) return;
+    renderHashtagList();
+    loadSidebarBookmarks();
   });
 }
 
-// 頁面載入後執行一次初始化，並每＿秒檢查路徑與空白狀態
+function applyActiveChatPath(path) {
+  const listEmpty = !document.getElementById("bookmark-list").childElementCount;
+
+  if (!path) {
+    bindStorageWatcherForKey(null);
+    if (CURRENT_CHAT_KEY !== null || !listEmpty) {
+      CURRENT_CHAT_KEY = null;
+      clearSidebar();
+    }
+    return;
+  }
+
+  // 有 chatId：切換聊天室或畫面是空的 → 載入
+  if (path !== CURRENT_CHAT_KEY || listEmpty) {
+    CURRENT_CHAT_KEY = path;
+    bindStorageWatcherForKey(CURRENT_CHAT_KEY);
+    renderHashtagList();
+    loadSidebarBookmarks();
+  }
+}
+
+function syncActiveTabState() {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (!tabs[0]?.url) return;
+    if (!isAllowedChatOrigin(tabs[0].url)) {
+      applyActiveChatPath(null);
+      return;
+    }
+
+    const path = getChatKeyFromPathname(new URL(tabs[0].url).pathname);
+    applyActiveChatPath(path);
+  });
+}
+
+function bindActiveTabEvents() {
+  chrome.tabs.onActivated.addListener(() => syncActiveTabState());
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (changeInfo.url) syncActiveTabState();
+  });
+  chrome.windows.onFocusChanged.addListener(() => syncActiveTabState());
+}
+
+// 頁面載入後執行一次初始化；之後以事件驅動為主，低頻輪詢作為備援
 document.addEventListener("DOMContentLoaded", async () => {
   // 載入語系與套用文字
   const lang = await dualGetSetting(LANGUAGE_KEY, "zh");
@@ -355,41 +368,9 @@ document.addEventListener("DOMContentLoaded", async () => {
   applyMessages();
 
   // 初始化書籤
-  initCurrentKeyAndLoad();
-  setInterval(() => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const url = tabs[0]?.url;
-      if (!url) return;
-
-      const path = normalizePath(new URL(url).pathname);
-      const listEmpty =
-        !document.getElementById("bookmark-list").childElementCount;
-
-      // (A) 新聊天室：沒有 chatId → 直接清空
-      if (!path) {
-        if (CURRENT_CHAT_KEY !== null || !listEmpty) {
-          CURRENT_CHAT_KEY = null;
-          BOUND_KEY = null;
-          clearSidebar();
-        }
-        return;
-      }
-
-      // (B) 有 chatId：切換聊天室或畫面是空的 → 載入
-      if (path !== CURRENT_CHAT_KEY || listEmpty) {
-        CURRENT_CHAT_KEY = path;
-        if (BOUND_KEY !== CURRENT_CHAT_KEY) {
-          BOUND_KEY = CURRENT_CHAT_KEY;
-          onKeyStorageChanged(CURRENT_CHAT_KEY, () => {
-            renderHashtagList();
-            loadSidebarBookmarks();
-          });
-        }
-        renderHashtagList();
-        loadSidebarBookmarks();
-      }
-    });
-  }, 500);
+  syncActiveTabState();
+  bindActiveTabEvents();
+  setInterval(syncActiveTabState, SIDEBAR_FALLBACK_POLL_INTERVAL);
 
   document
     .getElementById("settings-button")
@@ -404,7 +385,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // 1) 臨時指定此分頁的 popup
         await chrome.action.setPopup({
           tabId: tab.id,
-          popup: "src/popup/popup.html",
+          popup: PATHS.POPUP_PAGE,
         });
 
         // 2) 立刻開啟（必須在使用者點擊手勢中呼叫）
@@ -412,7 +393,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
         // 3) 立刻要求背景程式清掉（比 setTimeout 更可靠）
         chrome.runtime.sendMessage({
-          type: "CLEAR_ACTION_POPUP_FOR_ACTIVE_TAB",
+          type: MESSAGE_TYPES.CLEAR_ACTION_POPUP_FOR_ACTIVE_TAB,
         });
 
         // 可留著當備援：確保就算 SW 沒收到訊息，也會清掉
@@ -437,11 +418,13 @@ document.addEventListener("DOMContentLoaded", async () => {
 // ----- 滾動按鈕功能 -----
 document.getElementById("scroll-top-btn").addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    chrome.tabs.sendMessage(tabs[0].id, { type: "scroll-to-top" });
+    chrome.tabs.sendMessage(tabs[0].id, { type: MESSAGE_TYPES.SCROLL_TO_TOP });
   });
 });
 document.getElementById("scroll-bottom-btn").addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    chrome.tabs.sendMessage(tabs[0].id, { type: "scroll-to-bottom" });
+    chrome.tabs.sendMessage(tabs[0].id, {
+      type: MESSAGE_TYPES.SCROLL_TO_BOTTOM,
+    });
   });
 });

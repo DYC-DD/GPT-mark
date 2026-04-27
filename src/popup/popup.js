@@ -1,6 +1,6 @@
-const LOCALE_MAP = { zh: "zh_TW", en: "en", ja: "ja" };
-const LANGUAGE_KEY = "sidebar-language";
-const MOOD_KEY = "sidebar-mood";
+const { LOCALES, STORAGE_KEYS } = self.GPT_MARK;
+const LANGUAGE_KEY = STORAGE_KEYS.SIDEBAR_LANGUAGE;
+const MOOD_KEY = STORAGE_KEYS.SIDEBAR_MOOD;
 
 // 全域儲存翻譯文字
 let messages = {};
@@ -8,7 +8,7 @@ let messages = {};
 // ----- i18n -----
 // 載入對應語系的語言
 async function loadMessages(lang) {
-  const loc = LOCALE_MAP[lang] || LOCALE_MAP.zh;
+  const loc = LOCALES[lang] || LOCALES.zh;
   const url = chrome.runtime.getURL(`_locales/${loc}/messages.json`);
   const res = await fetch(url);
   const json = await res.json();
@@ -56,7 +56,7 @@ function applyRadioMood(mode) {
 }
 
 // ----- 初始化設定 -----
-["sidebar-language", "sidebar-mood"].forEach(async (k) => {
+[LANGUAGE_KEY, MOOD_KEY].forEach(async (k) => {
   const [loc, syn] = await Promise.all([
     chrome.storage.local.get([k]),
     chrome.storage.sync.get([k]),

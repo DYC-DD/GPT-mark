@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "default_locale": "zh_TW",
-  "version": "3.2.8",
+  "version": "3.2.9",
   "name": "__MSG_name__",
   "description": "__MSG_description__",
   "permissions": ["activeTab", "storage", "tabs", "sidePanel", "contextMenus"],
@@ -17,7 +17,11 @@
   "content_scripts": [
     {
       "matches": ["https://chat.openai.com/*", "https://chatgpt.com/*"],
-      "js": ["src/shared/dual-storage.js", "src/content.js"]
+      "js": [
+        "src/shared/constants.js",
+        "src/shared/dual-storage.js",
+        "src/content.js"
+      ]
     }
   ],
   "background": {

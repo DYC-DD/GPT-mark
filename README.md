@@ -113,7 +113,7 @@ A sample structure is shown below:
 
 > [!NOTE]
 >
-> - his extension only works on the official ChatGPT website: [ChatGPT](https://chatgpt.com/)
+> - This extension only works on the official ChatGPT website: [ChatGPT](https://chatgpt.com/)
 > - Bookmark and settings data storage:
 >   - Local storage (default): saved using `chrome.storage.local`.
 >   - Cross-device sync: also written to `chrome.storage.sync`, allowing automatic synchronization across Chrome browsers logged into the same Google account.

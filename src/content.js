@@ -11,8 +11,8 @@
     SCAN_INTERVAL: 2000,
 
     // 書籤 icon
-    EMPTY_ICON: "assets/icons/bookmarks.svg",
-    FILL_ICON: "assets/icons/bookmarks-fill.svg",
+    EMPTY_ICON: self.GPT_MARK.ICONS.BOOKMARK_EMPTY,
+    FILL_ICON: self.GPT_MARK.ICONS.BOOKMARK_FILLED,
 
     // 捲動定位時的 top padding，避免貼到容器最頂
     SCROLL_TOP_PADDING: 60,
@@ -25,6 +25,7 @@
     HIGHLIGHT_FADE_DELAY: 1500,
     HIGHLIGHT_CLEAR_DELAY: 3000,
   };
+  const { MESSAGE_TYPES, getChatKeyFromPathname } = self.GPT_MARK;
 
   // ===== Enter 行為：僅在「編輯模式」下，Enter 單擊換行 / 雙擊送出 =====
   let enterPressCount = 0; // Enter 次數計數
@@ -211,20 +212,9 @@
   }
 
   // ===== 書籤資料：key 規則、搬家(migration)、讀寫、toggle 邏輯 =====
-  // 將任意 /g/.../c/<chatId> 或 /c/<chatId>/ 統一為 /c/<chatId></chatId>
-  function normalizePath(p) {
-    const path = (p || "").replace(/\/$/, "");
-    const m = path.match(/^\/g\/[^/]+\/c\/([^/]+)$/);
-    if (m) return `/c/${m[1]}`;
-    return path;
-  }
-
   // 回傳目前聊天室的 storage key（或 null）
   function getCurrentChatKey() {
-    const p = normalizePath(window.location.pathname);
-    if (p === "/c" || /^\/g\/[^/]+\/c$/.test(window.location.pathname))
-      return null;
-    return p;
+    return getChatKeyFromPathname(window.location.pathname);
   }
 
   // 舊 sync 分片一次性搬家：把 /g/.../c/<id>::* → /c/<id>::*
@@ -285,13 +275,6 @@
         );
       });
     });
-  }
-
-  // 讀取當前聊天室書籤（若不在聊天室頁面則回傳空陣列）
-  function fetchBookmarks(cb) {
-    const key = getCurrentChatKey();
-    if (!key) return cb([]);
-    dualRead(key).then((list) => cb(list));
   }
 
   // 儲存當前聊天室書籤（若不在聊天室頁面則直接忽略）
@@ -715,6 +698,10 @@
   function handleLocationChange() {
     if (window.location.pathname === lastPathname) return;
     lastPathname = window.location.pathname;
+    chrome.runtime.sendMessage({
+      type: MESSAGE_TYPES.CHATGPT_ROUTE_CHANGED,
+      pathname: lastPathname,
+    });
 
     setTimeout(() => {
       injectExistingBookmarks();
@@ -789,24 +776,24 @@
     if (!message || !message.type) return;
 
     // 滾動到書籤訊息
-    if (message.type === "scrollToMessage") {
+    if (message.type === MESSAGE_TYPES.SCROLL_TO_MESSAGE) {
       const ret = scrollToMessageId(message.id);
       sendResponse?.({ result: ret.ok ? "scrolled" : ret.reason });
       return;
     }
 
     // sidebar 取得訊息排序
-    if (message.type === "getChatOrder") {
+    if (message.type === MESSAGE_TYPES.GET_CHAT_ORDER) {
       sendResponse?.({ order: getChatOrder() });
       return;
     }
 
     // 滾動到頂/底
-    if (message.type === "scroll-to-top") {
+    if (message.type === MESSAGE_TYPES.SCROLL_TO_TOP) {
       scrollToEdge("top");
       return;
     }
-    if (message.type === "scroll-to-bottom") {
+    if (message.type === MESSAGE_TYPES.SCROLL_TO_BOTTOM) {
       scrollToEdge("bottom");
       return;
     }
@@ -814,24 +801,33 @@
 
   // ===== storage watcher：監聽當前聊天室 key 的書籤變動，自動刷新 icon =====
   function bindBookmarkWatcher() {
-    let currentKey = getCurrentChatKey();
-    if (!currentKey) return;
+    let currentKey = null;
+    let unbindStorageWatcher = null;
+
+    const bindToKey = (nextKey) => {
+      if (nextKey === currentKey) return;
+
+      if (unbindStorageWatcher) {
+        unbindStorageWatcher();
+        unbindStorageWatcher = null;
+      }
+
+      currentKey = nextKey;
+      if (!currentKey) return;
+
+      const watchedKey = currentKey;
+      unbindStorageWatcher = onKeyStorageChanged(watchedKey, () => {
+        if (getCurrentChatKey() !== watchedKey) return;
+        refreshBookmarkIcons();
+      });
+    };
 
     // 初次綁定
-    onKeyStorageChanged(currentKey, () => {
-      if (getCurrentChatKey() !== currentKey) return;
-      refreshBookmarkIcons();
-    });
+    bindToKey(getCurrentChatKey());
 
     // 路由改變：重新綁定新 key（避免聊天室切換後不更新）
     window.addEventListener(ROUTE_EVENT, () => {
-      const nextKey = getCurrentChatKey();
-      if (!nextKey || nextKey === currentKey) return;
-      currentKey = nextKey;
-      onKeyStorageChanged(currentKey, () => {
-        if (getCurrentChatKey() !== currentKey) return;
-        refreshBookmarkIcons();
-      });
+      bindToKey(getCurrentChatKey());
     });
   }
 
@@ -866,7 +862,7 @@
     bindBookmarkWatcher();
 
     // 8) 告訴 sidebar：content script 已準備好
-    chrome.runtime.sendMessage({ type: "chatgpt-ready" });
+    chrome.runtime.sendMessage({ type: MESSAGE_TYPES.CHATGPT_READY });
   }
 
   let hasInitialized = false;

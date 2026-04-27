@@ -244,7 +244,7 @@ async function dualSet(key, list) {
 
 // 監聽指定 key 的 local + sync 變動
 function onKeyStorageChanged(prefix, handler) {
-  chrome.storage.onChanged.addListener((changes, area) => {
+  const listener = (changes, area) => {
     if (area === "local" && changes[prefix]) {
       handler();
       return;
@@ -256,7 +256,10 @@ function onKeyStorageChanged(prefix, handler) {
       );
       if (hit) handler();
     }
-  });
+  };
+
+  chrome.storage.onChanged.addListener(listener);
+  return () => chrome.storage.onChanged.removeListener(listener);
 }
 
 // ---- Settings (simple key-value) helpers ----
@@ -290,9 +293,12 @@ async function dualSetSetting(key, value) {
 
 // 單一 key 變動監聽（local/sync 皆觸發）
 function onSettingChangedKey(key, handler) {
-  chrome.storage.onChanged.addListener((changes, area) => {
+  const listener = (changes, area) => {
     if (changes[key]) handler(changes[key].newValue, area);
-  });
+  };
+
+  chrome.storage.onChanged.addListener(listener);
+  return () => chrome.storage.onChanged.removeListener(listener);
 }
 
 // 將重要方法掛到全域

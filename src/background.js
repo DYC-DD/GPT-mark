@@ -1,15 +1,9 @@
-const ALLOWED_ORIGINS = ["https://chat.openai.com", "https://chatgpt.com"];
+importScripts("/src/shared/constants.js");
+
+const { CHATGPT_MATCH_PATTERNS, MESSAGE_TYPES, PATHS, isAllowedChatOrigin } =
+  self.GPT_MARK;
 const MENU_PAGE = "open-sidebar-page";
 const MENU_ACTION = "open-sidebar-action";
-
-// 判斷是否允許的網域
-function isAllowed(url = "") {
-  try {
-    return ALLOWED_ORIGINS.includes(new URL(url).origin);
-  } catch {
-    return false;
-  }
-}
 
 // 依分頁網址啟用/停用側欄
 async function updateSidePanelForTab(tabId, url) {
@@ -19,11 +13,11 @@ async function updateSidePanelForTab(tabId, url) {
     } catch {}
     return;
   }
-  if (isAllowed(url)) {
+  if (isAllowedChatOrigin(url)) {
     try {
       await chrome.sidePanel.setOptions({
         tabId,
-        path: "src/sidebar/sidebar.html",
+        path: PATHS.SIDEBAR_PAGE,
         enabled: true,
       });
     } catch {}
@@ -40,7 +34,7 @@ async function updateSidePanelForTab(tabId, url) {
 function openSidePanelWithSetOptions(tabId) {
   // 直接重新指定一次，並在 callback 內 open
   chrome.sidePanel.setOptions(
-    { tabId, path: "src/sidebar/sidebar.html", enabled: true },
+    { tabId, path: PATHS.SIDEBAR_PAGE, enabled: true },
     () => chrome.sidePanel.open({ tabId }).catch(() => {})
   );
 }
@@ -63,10 +57,7 @@ async function recreateContextMenus() {
       id: MENU_PAGE,
       title: "Open GPT-mark",
       contexts: ["page"],
-      documentUrlPatterns: [
-        "https://chat.openai.com/*",
-        "https://chatgpt.com/*",
-      ],
+      documentUrlPatterns: CHATGPT_MATCH_PATTERNS,
     });
     // 2) 擴充圖示右鍵：各網域都顯示，但點擊時再判斷是否允許
     chrome.contextMenus.create({
@@ -90,7 +81,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     });
     target = active;
   }
-  if (!target?.id || !isAllowed(target.url)) return;
+  if (!target?.id || !isAllowedChatOrigin(target.url)) return;
 
   // 用 callback 版避免 setOptions/open 的競態
   openSidePanelWithSetOptions(target.id);
@@ -145,7 +136,7 @@ async function clearActionPopup(tabId) {
 }
 
 chrome.runtime.onMessage.addListener(async (msg) => {
-  if (msg?.type === "CLEAR_ACTION_POPUP_FOR_ACTIVE_TAB") {
+  if (msg?.type === MESSAGE_TYPES.CLEAR_ACTION_POPUP_FOR_ACTIVE_TAB) {
     const [active] = await chrome.tabs.query({
       active: true,
       currentWindow: true,

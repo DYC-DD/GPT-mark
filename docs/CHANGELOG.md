@@ -2,6 +2,39 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [3.2.9] - 2026-04-27
+
+### Added
+
+- 新增 `src/shared/constants.js`，集中管理共用常數與工具函式：
+  - ChatGPT 允許網域與 match patterns
+  - popup / sidebar 頁面路徑
+  - storage keys
+  - locale 對應表
+  - runtime message types
+  - icon 路徑
+  - 聊天室路徑正規化工具（`normalizeChatPath()` / `getChatKeyFromPathname()`）
+
+### Changed
+
+- 將 `background.js`、`content.js`、`sidebar.js`、`popup.js` 中重複定義的常數改為引用 shared constants
+- 將聊天室 path normalize 邏輯統一由 shared helper 處理，降低後續維護成本
+- 調整 content script、popup、sidebar 的 script 載入順序，確保 shared constants 先於其他模組載入
+- 讓 storage change listener 回傳解除函式，並在聊天室 key 切換時解除舊 watcher，避免 listener 長時間累積
+- 將 sidebar 目前聊天室偵測改為事件驅動為主，透過 content script 路由通知與 tabs events 更新狀態，並將 fallback polling 從 500ms 降為 5000ms
+
+### Refactored
+
+- 清理未使用的 sidebar 程式碼與過期樣式：
+  - 移除未使用的 icon 常數、`chatReady`、`getSavedMood()`、`toggleMood()`
+  - 移除沒有對應 DOM 的 `#mood-toggle` 與 `#language-select` CSS
+  - 移除 `content.js` 中未使用的 `fetchBookmarks()` helper
+
+### Fixed
+
+- 修正 Traditional Chinese locale 中 `themeDark` description 的文字 typo
+- 修正 README note 中的英文 typo
+
 ## [3.2.8] - 2026-04-20
 
 ### Fixed
