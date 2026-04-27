@@ -22,6 +22,7 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
 - 調整 content script、popup、sidebar 的 script 載入順序，確保 shared constants 先於其他模組載入
 - 讓 storage change listener 回傳解除函式，並在聊天室 key 切換時解除舊 watcher，避免 listener 長時間累積
 - 將 sidebar 目前聊天室偵測改為事件驅動為主，透過 content script 路由通知與 tabs events 更新狀態，並將 fallback polling 從 500ms 降為 5000ms
+- 將 extension 與 sidebar / popup 的預設語言改為 English
 
 ### Refactored
 
@@ -32,6 +33,7 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
 
 ### Fixed
 
+- 修正 GPT / assistant 訊息高亮時，藍色外框上緣可能被裁切的問題；user 訊息維持原本 outline 樣式，assistant 訊息改用 inset `box-shadow`
 - 修正 Traditional Chinese locale 中 `themeDark` description 的文字 typo
 - 修正 README note 中的英文 typo
 

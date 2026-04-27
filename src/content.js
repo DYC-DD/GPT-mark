@@ -637,6 +637,10 @@
         background-color: rgba(138, 161, 229, 0.25);
         transition: outline-color 1s ease, background-color 1s ease, box-shadow 1s ease;
       }
+      .gptmark-highlight[data-message-author-role="assistant"] {
+        outline: none;
+        box-shadow: inset 0 0 0 2px rgba(0, 89, 255, 0.9);
+      }
       .gptmark-highlight.fadeout {
         outline-color: transparent;
         background-color: transparent;

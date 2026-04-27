@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "default_locale": "zh_TW",
+  "default_locale": "en",
   "version": "3.2.9",
   "name": "__MSG_name__",
   "description": "__MSG_description__",

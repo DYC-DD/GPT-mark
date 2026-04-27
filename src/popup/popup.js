@@ -8,7 +8,7 @@ let messages = {};
 // ----- i18n -----
 // 載入對應語系的語言
 async function loadMessages(lang) {
-  const loc = LOCALES[lang] || LOCALES.zh;
+  const loc = LOCALES[lang] || LOCALES.en;
   const url = chrome.runtime.getURL(`_locales/${loc}/messages.json`);
   const res = await fetch(url);
   const json = await res.json();
@@ -67,7 +67,7 @@ function applyRadioMood(mode) {
 });
 async function initSettings() {
   // 載入並套用語系
-  const lang = await dualGetSetting(LANGUAGE_KEY, "zh");
+  const lang = await dualGetSetting(LANGUAGE_KEY, "en");
   document.getElementById(`lang-${lang}`).checked = true;
   await setLanguage(lang);
 

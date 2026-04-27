@@ -71,7 +71,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
 // ----- 語言設定功能 -----
 // 讀取指定語系的翻譯訊息
 async function loadMessages(lang) {
-  const loc = LOCALES[lang] || LOCALES.zh;
+  const loc = LOCALES[lang] || LOCALES.en;
   const url = chrome.runtime.getURL(`_locales/${loc}/messages.json`);
   const res = await fetch(url);
   const json = await res.json();
@@ -363,7 +363,7 @@ function bindActiveTabEvents() {
 // 頁面載入後執行一次初始化；之後以事件驅動為主，低頻輪詢作為備援
 document.addEventListener("DOMContentLoaded", async () => {
   // 載入語系與套用文字
-  const lang = await dualGetSetting(LANGUAGE_KEY, "zh");
+  const lang = await dualGetSetting(LANGUAGE_KEY, "en");
   await loadMessages(lang);
   applyMessages();
 
