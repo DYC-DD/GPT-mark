@@ -5,33 +5,33 @@
 
   // ===== 全域設定 =====
   const CONFIG = {
-    // Enter 雙擊判定延遲（毫秒）
+    // Enter double-click 判定視窗，單位 ms
     DOUBLE_CLICK_DELAY: 200,
-    // 動態載入掃描週期（毫秒）
+    // DOM 懶載入補掃描間隔，單位 ms
     SCAN_INTERVAL: 2000,
 
-    // 書籤 icon
+    // Bookmark icon 的 resource path
     EMPTY_ICON: self.GPT_MARK.ICONS.BOOKMARK_EMPTY,
     FILL_ICON: self.GPT_MARK.ICONS.BOOKMARK_FILLED,
 
-    // 捲動定位時的 top padding，避免貼到容器最頂
+    // Scroll target 頂部預留距離，避免訊息貼齊容器上緣
     SCROLL_TOP_PADDING: 60,
 
-    // 注入書籤按鈕重試次數/間隔
+    // Bookmark button 注入重試上限與間隔
     INJECT_RETRY_TIMES: 5,
     INJECT_RETRY_INTERVAL: 120,
 
-    // highlight 動畫時序（毫秒）
+    // Highlight animation 時序，單位 ms
     HIGHLIGHT_FADE_DELAY: 1500,
     HIGHLIGHT_CLEAR_DELAY: 3000,
   };
   const { MESSAGE_TYPES, getChatKeyFromPathname } = self.GPT_MARK;
 
-  // ===== Enter 行為：僅在「編輯模式」下，Enter 單擊換行 / 雙擊送出 =====
-  let enterPressCount = 0; // Enter 次數計數
-  let enterPressTimer = null; // Enter 計時器
+  // ===== Enter 編輯模式快捷鍵 =====
+  let enterPressCount = 0; // 目前 Enter 連擊次數
+  let enterPressTimer = null; // 單擊換行的延遲 timer
 
-  // 重置 Enter 計數狀態
+  // 清除 Enter 連擊狀態與 timer
   function resetEnterState() {
     enterPressCount = 0;
     if (enterPressTimer) {
@@ -40,7 +40,7 @@
     }
   }
 
-  // 判斷目前事件目標是否為 ChatGPT 的輸入框
+  // 判斷事件來源是否為 ChatGPT message input
   function isChatInput(target) {
     if (!target) return false;
     if (target.tagName === "TEXTAREA") return true;
@@ -55,7 +55,7 @@
     return false;
   }
 
-  // 判斷是否處在「編輯回覆」模式
+  // 判斷目前是否位於 ChatGPT 回覆編輯模式
   function isEditingMode() {
     const editSendButton = document.querySelector(
       "button.btn.relative.btn-primary"
@@ -63,9 +63,9 @@
     return !!editSendButton;
   }
 
-  // 嘗試在各種可能的地方找到「送出」按鈕
+  // 依 ChatGPT DOM 版本差異尋找 submit button
   function findSendButton() {
-    // 優先使用 data-testid
+    // 優先使用穩定的 data-testid selector
     let button = document.querySelector('[data-testid="send-button"]');
     if (button) return button;
     button = document.querySelector("button.btn.relative.btn-primary");
@@ -74,7 +74,7 @@
     if (button) return button;
     button = document.querySelector('button[aria-label="Send"]');
     if (button) return button;
-    // 最後掃描所有 button 找文字包含「傳送」或「Save & Submit」
+    // selector 失效時以 button text 作最後 fallback
     const buttons = document.querySelectorAll("button");
     for (const btn of buttons) {
       if (
@@ -88,7 +88,7 @@
     return null;
   }
 
-  // 在指定輸入框插入換行符
+  // 在 textarea 游標位置插入 newline，並派送 input event
   function insertNewline(targetElement) {
     if (!targetElement) return;
 
@@ -102,17 +102,17 @@
     targetElement.dispatchEvent(event);
   }
 
-  // 全域 keydown：處理 Shift+Enter 換行 + 編輯模式 Enter 單/雙擊
+  // 處理 Shift+Enter 與編輯模式下的 Enter single/double click
   function handleKeyDown(event) {
     const target = event.target;
 
-    // 不是輸入框：清狀態即可
+    // 非 ChatGPT input 時清除暫存狀態
     if (!isChatInput(target)) {
       resetEnterState();
       return;
     }
 
-    // Shift+Enter：一律換行
+    // Shift+Enter 固定保留為換行
     if (event.key === "Enter" && event.shiftKey) {
       event.preventDefault();
       insertNewline(target);
@@ -120,19 +120,19 @@
       return;
     }
 
-    // 非編輯模式：不做 Enter 單/雙擊判斷（回復預設行為）
+    // 一般對話模式交回 ChatGPT 原生 Enter 行為
     if (!isEditingMode()) {
       resetEnterState();
       return;
     }
 
-    // 編輯模式下：Enter（且非輸入法組字狀態）才介入
+    // 僅攔截編輯模式中的 Enter，IME composing 期間不處理
     if (event.key !== "Enter" || event.isComposing) return;
 
     event.preventDefault();
     enterPressCount += 1;
 
-    // 第一次 Enter：開 timer，時間到仍是 1 次 => 換行
+    // 第一次 Enter 等待 double-click 視窗，逾時後插入 newline
     if (enterPressCount === 1) {
       enterPressTimer = setTimeout(() => {
         if (enterPressCount === 1) {
@@ -144,7 +144,7 @@
       return;
     }
 
-    // 第二次 Enter（在延遲時間內）：發送
+    // 第二次 Enter 視為提交編輯內容
     if (enterPressCount === 2) {
       if (enterPressTimer) clearTimeout(enterPressTimer);
 
@@ -160,11 +160,11 @@
     }
   }
 
-  // 綁定鍵盤事件
+  // 註冊全域 keydown listener
   document.addEventListener("keydown", handleKeyDown);
 
-  // ===== Scroll Helpers：可靠取得 ChatGPT 主捲動容器 =====
-  //判斷元素是否為「真正可滾動」的容器
+  // ===== Scroll helper 捲動輔助 =====
+  // 判斷元素是否可垂直 scroll
   function isScrollableY(el) {
     if (!(el instanceof HTMLElement)) return false;
     const style = window.getComputedStyle(el);
@@ -174,7 +174,7 @@
     return canScrollByStyle && canScrollBySize;
   }
 
-  // 從某節點開始往父層找
+  // 從指定節點向上尋找最近的 scroll container
   function findNearestScrollableAncestor(startEl) {
     let el = startEl;
 
@@ -186,7 +186,7 @@
     return document.scrollingElement || document.documentElement;
   }
 
-  // 取得「聊天室主要捲動容器」
+  // 取得 ChatGPT conversation 的主要 scroll container
   function getChatScrollContainer() {
     const bottom =
       document.getElementById("thread-bottom-container") ||
@@ -211,20 +211,20 @@
     return document.scrollingElement || document.documentElement;
   }
 
-  // ===== 書籤資料：key 規則、搬家(migration)、讀寫、toggle 邏輯 =====
-  // 回傳目前聊天室的 storage key（或 null）
+  // ===== Bookmark data/storage 書籤資料 =====
+  // 取得目前 conversation 的 storage key
   function getCurrentChatKey() {
     return getChatKeyFromPathname(window.location.pathname);
   }
 
-  // 舊 sync 分片一次性搬家：把 /g/.../c/<id>::* → /c/<id>::*
+  // 將舊版 sync shard key 從 /g/.../c/<id> migration 至 /c/<id>
   async function migrateSyncPrefixes() {
     const all = await chrome.storage.sync.get(null);
     const updates = {};
     const toRemove = [];
     const groups = new Map();
 
-    // 蒐集所有舊前綴群組
+    // 依舊 prefix 蒐集 shard group
     for (const k of Object.keys(all)) {
       const m = k.match(/^(\/g\/[^/]+\/c\/[^/:]+)::(idx|\d+)$/);
       if (!m) continue;
@@ -235,7 +235,7 @@
       if (!groups.has(oldPrefix)) groups.set(oldPrefix, { newPrefix });
     }
 
-    // 依據舊 idx 搬 shard，重建新 idx
+    // 依舊 index 搬移 shard，並建立新 index
     for (const [oldPrefix, { newPrefix }] of groups) {
       const oldIdxKey = `${oldPrefix}::idx`;
       const oldIdx = Array.isArray(all[oldIdxKey]) ? all[oldIdxKey] : [];
@@ -260,7 +260,7 @@
     }
   }
 
-  // 舊 local 一次性搬家：把 /g/.../c/<id> → /c/<id>
+  // 將舊版 local key 從 /g/.../c/<id> migration 至 /c/<id>
   function migrateLocalPrefixes() {
     chrome.storage.local.get(null, (all) => {
       Object.entries(all).forEach(([k, v]) => {
@@ -277,19 +277,19 @@
     });
   }
 
-  // 儲存當前聊天室書籤（若不在聊天室頁面則直接忽略）
+  // 儲存目前 conversation 的 bookmark list；非 conversation 頁面直接略過
   function saveBookmarks(list) {
     const key = getCurrentChatKey();
     if (!key) return;
     dualSet(key, list);
   }
 
-  // 判斷某訊息 id 是否已書籤（且未 deleted）
+  // 確認 message id 是否存在有效 bookmark
   function isBookmarked(id, list) {
     return list.some((it) => it.id === id && !it.deleted);
   }
 
-  // 切換書籤：已存在：切換 deleted 墓碑, 不存在：新增一筆
+  // 切換 bookmark 狀態；刪除採用 tombstone 以支援 sync merge
   function toggleBookmark(id, content, role, cb) {
     const key = getCurrentChatKey();
     if (!key) return;
@@ -335,15 +335,15 @@
     });
   }
 
-  // ===== UI：書籤按鈕注入、icon 主題、掃描與觀察器 =====
-  // 根據主題回傳 hover 背景色
+  // ===== Bookmark button UI 書籤按鈕 =====
+  // 依 theme 回傳 hover 背景色
   function getHoverBgColor() {
     return document.documentElement.classList.contains("dark")
       ? "#303030"
       : "#E8E8E8";
   }
 
-  // 根據主題回傳 icon 濾鏡
+  // 依 theme 回傳 icon filter
   function getIconFilter() {
     return document.documentElement.classList.contains("dark")
       ? "brightness(0) invert(1)"
@@ -386,12 +386,12 @@
     iconNode.src = chrome.runtime.getURL(file);
   }
 
-  // 建立書籤按鈕並綁定事件
+  // 建立 bookmark button 並綁定互動
   function createBookmarkButton(msg, hostButton) {
     const id = msg?.dataset?.messageId;
     if (!id) return null;
 
-    // 已存在同 id 按鈕就不再建立（避免重複）
+    // 已存在同 message id 時略過，避免重複注入
     if (
       document.querySelector(
         `.chatgpt-bookmark-btn[data-bookmark-id="${CSS.escape(id)}"]`
@@ -400,7 +400,7 @@
       return null;
     }
 
-    // 按鈕本體
+    // 建立 button element
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "chatgpt-bookmark-btn";
@@ -441,7 +441,7 @@
       });
     }
 
-    // icon
+    // 建立 icon element
     const icon = document.createElement("img");
     Object.assign(icon.style, {
       width: hostButton ? "18px" : "16px",
@@ -453,7 +453,7 @@
     iconWrap.appendChild(icon);
     btn.appendChild(iconWrap);
 
-    // 初始化 icon 狀態
+    // 讀取 storage 初始化 icon 狀態
     const key = getCurrentChatKey();
     if (key) {
       dualRead(key).then((list) => {
@@ -461,7 +461,7 @@
       });
     }
 
-    // 點擊切換書籤
+    // 點擊後更新 bookmark 狀態與 icon
     btn.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopPropagation();
@@ -473,7 +473,7 @@
       });
     });
 
-    // fallback hover（原生按鈕 class 會自行處理 hover）
+    // 沒有可沿用的 ChatGPT button class 時才補上 hover style
     if (!(hostButton instanceof HTMLElement)) {
       btn.addEventListener("mouseenter", () => {
         btn.style.backgroundColor = getHoverBgColor();
@@ -486,7 +486,7 @@
     return btn;
   }
 
-  // 嘗試注入書籤按鈕（避免 ChatGPT DOM 還沒掛載好）
+  // ChatGPT action row 可能延遲渲染，因此以 retry 注入 button
   const scheduledInjects = new Map();
 
   function tryInjectButton(msg) {
@@ -515,7 +515,7 @@
 
     if (insertNow()) return;
 
-    // 避免同 id 重複排程
+    // 同一 message id 只保留一個 retry job
     if (scheduledInjects.has(id)) return;
 
     let attempts = CONFIG.INJECT_RETRY_TIMES;
@@ -528,7 +528,7 @@
 
     scheduledInjects.set(id, intervalId);
   }
-  // 為目前頁面所有已渲染訊息注入書籤按鈕
+  // 對目前已渲染 message 注入 bookmark button
   function injectExistingBookmarks() {
     document
       .querySelectorAll(MESSAGE_SELECTOR)
@@ -571,7 +571,7 @@
     if (msgNode) tryInjectButton(msgNode);
   }
 
-  // 監聽新 turn / 新訊息加入，自動注入書籤按鈕
+  // MutationObserver 監聽新 turn/message，補注入 bookmark button
   function observeAllTurns() {
     const observer = new MutationObserver((mutations) => {
       for (const m of mutations) {
@@ -594,7 +594,7 @@
     });
   }
 
-  // 主題切換時，更新所有書籤 icon filter
+  // theme 切換時同步所有 bookmark icon filter
   function updateBookmarkIconsFilter() {
     const filter = getIconFilter();
     document.querySelectorAll(".chatgpt-bookmark-btn img").forEach((icon) => {
@@ -602,7 +602,7 @@
     });
   }
 
-  // 監聽 <html> class 變化（dark / light 切換）
+  // 監聽 <html> class 變化以偵測 dark/light 切換
   function observeThemeChange() {
     const observer = new MutationObserver(() => updateBookmarkIconsFilter());
     observer.observe(document.documentElement, {
@@ -611,7 +611,7 @@
     });
   }
 
-  // 依據 storage 的書籤資料刷新所有 icon（空心/實心）
+  // 根據 storage 狀態同步所有 bookmark icon
   function refreshBookmarkIcons() {
     const key = getCurrentChatKey();
     if (!key) return;
@@ -624,7 +624,7 @@
     });
   }
 
-  // ==== Highlight：滾動到訊息時的高亮動畫 =====
+  // ===== Highlight 動畫 =====
   function injectHighlightStyle() {
     if (document.getElementById("gptmark-highlight-style")) return;
     const style = document.createElement("style");
@@ -652,7 +652,7 @@
 
   const highlightTimers = new WeakMap();
 
-  // 對指定訊息做 highlight（可重複觸發，會先清掉前一次 timer）
+  // 對 message 套用 highlight，可重複觸發並清除前次 timer
   function highlightMessage(msgElem) {
     const timers = highlightTimers.get(msgElem);
     if (timers) {
@@ -674,7 +674,7 @@
     highlightTimers.set(msgElem, { fadeTimer, clearTimer });
   }
 
-  // ===== 路由變化：SPA 下聊天室切換，需要重新注入/刷新 icon/重新綁定 watcher =====
+  // ===== SPA route 監聽 =====
   const ROUTE_EVENT = "gptmark-location-change";
   let lastPathname = window.location.pathname;
 
@@ -713,8 +713,8 @@
     }, 600);
   }
 
-  // ===== runtime messages：sidebar -> content 的控制入口 =====
-  // 滾動到指定訊息（並高亮）
+  // ===== Runtime message 入口 =====
+  // sidebar 要求定位到指定 message
   function scrollToMessageId(messageId) {
     const msgElem = document.querySelector(
       `[data-message-id="${CSS.escape(messageId)}"]`
@@ -724,7 +724,7 @@
     const chatContainer = getChatScrollContainer();
 
     if (chatContainer) {
-      // 以容器座標計算相對位置，確保捲的是對的容器
+      // 以 container 座標計算相對位置，確保 scroll 目標正確
       const containerRect = chatContainer.getBoundingClientRect();
       const msgRect = msgElem.getBoundingClientRect();
       const curTop = chatContainer.scrollTop;
@@ -739,7 +739,7 @@
 
       chatContainer.scrollTo({ top: targetTop, behavior: "smooth" });
     } else {
-      // fallback：如果真的抓不到容器，就用原生 scrollIntoView
+      // fallback：找不到 container 時改用原生 scrollIntoView
       msgElem.scrollIntoView({ behavior: "smooth", block: "nearest" });
     }
 
@@ -747,7 +747,7 @@
     return { ok: true };
   }
 
-  // 回傳聊天室訊息順序給 sidebar 用
+  // 回傳目前 DOM 中的 conversation message order
   function getChatOrder() {
     const elems = document.querySelectorAll(
       '[data-message-author-role="user"][data-message-id], [data-message-author-role="assistant"][data-message-id]'
@@ -755,7 +755,7 @@
     return Array.from(elems).map((el) => el.dataset.messageId);
   }
 
-  // 捲動到最上/最下
+  // 捲動 conversation 至頂部或底部
   function scrollToEdge(edgeType) {
     const chatContainer = getChatScrollContainer();
     if (!chatContainer) return false;
@@ -775,24 +775,24 @@
     return false;
   }
 
-  // 統一 runtime message listener
+  // 統一處理 sidebar/content runtime message
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message || !message.type) return;
 
-    // 滾動到書籤訊息
+    // 定位 bookmark message
     if (message.type === MESSAGE_TYPES.SCROLL_TO_MESSAGE) {
       const ret = scrollToMessageId(message.id);
       sendResponse?.({ result: ret.ok ? "scrolled" : ret.reason });
       return;
     }
 
-    // sidebar 取得訊息排序
+    // 提供 sidebar 排序所需的 message order
     if (message.type === MESSAGE_TYPES.GET_CHAT_ORDER) {
       sendResponse?.({ order: getChatOrder() });
       return;
     }
 
-    // 滾動到頂/底
+    // 捲動到頂部或底部
     if (message.type === MESSAGE_TYPES.SCROLL_TO_TOP) {
       scrollToEdge("top");
       return;
@@ -803,7 +803,7 @@
     }
   });
 
-  // ===== storage watcher：監聽當前聊天室 key 的書籤變動，自動刷新 icon =====
+  // ===== Storage watcher 監聽 =====
   function bindBookmarkWatcher() {
     let currentKey = null;
     let unbindStorageWatcher = null;
@@ -826,35 +826,35 @@
       });
     };
 
-    // 初次綁定
+    // 初次綁定目前 conversation key
     bindToKey(getCurrentChatKey());
 
-    // 路由改變：重新綁定新 key（避免聊天室切換後不更新）
+    // route change 時切換 watcher，避免跨 conversation 更新
     window.addEventListener(ROUTE_EVENT, () => {
       bindToKey(getCurrentChatKey());
     });
   }
 
-  // ===== 初始化：migration、style、observer、定期掃描、路由監聽、ready 訊息 =====
+  // ===== 初始化流程 =====
   async function init() {
-    // 1) migration（一次性）
+    // 執行 storage migration
     migrateLocalPrefixes();
     await migrateSyncPrefixes();
 
-    // 2) highlight style
+    // 注入 highlight style
     injectHighlightStyle();
 
-    // 3) 先注入一次 + 監聽後續新增
+    // 初次注入 bookmark button，並監聽後續 DOM 變化
     injectExistingBookmarks();
     observeAllTurns();
 
-    // 4) 主題切換 icon filter
+    // 監聽 theme 切換並同步 icon filter
     observeThemeChange();
 
-    // 5) 定期掃描（防止 ChatGPT 懶載入時漏掉）
+    // 定期補掃描，處理 ChatGPT lazy render 漏網節點
     setInterval(injectExistingBookmarks, CONFIG.SCAN_INTERVAL);
 
-    // 6) 路由監聽（SPA）
+    // 監聽 SPA route change
     patchHistoryOnce();
     window.addEventListener(ROUTE_EVENT, handleLocationChange);
     window.addEventListener("popstate", () => {
@@ -862,10 +862,10 @@
       handleLocationChange();
     });
 
-    // 7) storage watcher（跟著路由切換 key）
+    // 綁定 storage watcher，並隨 route 切換 key
     bindBookmarkWatcher();
 
-    // 8) 告訴 sidebar：content script 已準備好
+    // 通知 sidebar content script 已就緒
     chrome.runtime.sendMessage({ type: MESSAGE_TYPES.CHATGPT_READY });
   }
 
@@ -877,7 +877,7 @@
     init().catch((err) => console.error("[GPT-mark] init failed:", err));
   }
 
-  // document_idle 有機會晚於 load，因此在頁面已可用時直接初始化
+  // document_idle 可能晚於 load；DOM 已可用時直接初始化
   if (document.readyState === "loading") {
     window.addEventListener("load", startInit, { once: true });
   } else {

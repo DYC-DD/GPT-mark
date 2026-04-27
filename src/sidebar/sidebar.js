@@ -1,4 +1,4 @@
-// ----- 全域設定 -----
+// ===== 全域設定 =====
 const {
   CHATGPT_ORIGINS,
   ICONS,
@@ -10,22 +10,22 @@ const {
   isAllowedChatOrigin,
 } = self.GPT_MARK;
 
-// 最大書籤顯示字數
+// sidebar 書籤摘要最大顯示字數
 const MAX_CONTENT_LENGTH = 30;
 const SIDEBAR_FALLBACK_POLL_INTERVAL = 5000;
-// 側邊欄排序、主題、語系儲存鍵
+// sidebar 排序、theme、語系的 storage key
 const SORT_KEY = STORAGE_KEYS.SIDEBAR_SORT_ORDER;
 const MOOD_KEY = STORAGE_KEYS.SIDEBAR_MOOD;
 const LANGUAGE_KEY = STORAGE_KEYS.SIDEBAR_LANGUAGE;
 
 const HASHTAG_ICON = ICONS.HASHTAG;
 
-// 儲存讀取到的翻譯文字、目前聊天室 key、以及已選的 Hashtag
+// i18n catalog、目前 conversation key 與 hashtag filter 狀態
 let messages = {};
 let CURRENT_CHAT_KEY = null;
 let selectedTags = new Set();
 
-// ----- 等待主頁載入完成並初始化 -----
+// ===== 主頁狀態同步 =====
 chrome.runtime.onMessage.addListener((msg) => {
   if (
     msg.type === MESSAGE_TYPES.CHATGPT_READY ||
@@ -35,19 +35,19 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 });
 
-// ----- 主題切換功能 -----
+// ===== Theme 設定 =====
 let _mqListener = null;
-// 根據 mood 參數套用頁面主題
+// 套用 sidebar theme，system 模式會綁定 prefers-color-scheme
 function applyMood(mood) {
   document.body.classList.remove("light", "dark");
-  // 若已有 system 監聽，先解除
+  // 切換前先移除舊的 system listener
   if (_mqListener) {
     _mqListener.mq.removeEventListener("change", _mqListener.fn);
     _mqListener = null;
   }
 
   if (mood === "system") {
-    // 依系統動態監聽切換
+    // system theme 依 OS 設定即時切換
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     document.body.classList.add(mq.matches ? "dark" : "light");
     const fn = (e) => {
@@ -57,19 +57,19 @@ function applyMood(mood) {
     mq.addEventListener("change", fn);
     _mqListener = { mq, fn };
   } else {
-    // 明確指定 light / dark
+    // 固定套用 light/dark
     document.body.classList.add(mood);
   }
 }
-// 監聽主題變動並立即套用新主題
+// storage theme 變更時即時更新 sidebar
 chrome.storage.onChanged.addListener((changes, area) => {
   if ((area === "local" || area === "sync") && changes[MOOD_KEY]) {
     applyMood(changes[MOOD_KEY].newValue);
   }
 });
 
-// ----- 語言設定功能 -----
-// 讀取指定語系的翻譯訊息
+// ===== i18n 設定 =====
+// 載入指定 locale 的 message catalog
 async function loadMessages(lang) {
   const loc = LOCALES[lang] || LOCALES.en;
   const url = chrome.runtime.getURL(`_locales/${loc}/messages.json`);
@@ -79,7 +79,7 @@ async function loadMessages(lang) {
     Object.entries(json).map(([k, v]) => [k, v.message])
   );
 }
-// 套用翻譯文字到 UI
+// 將 message catalog 套用至 UI
 function applyMessages() {
   document.getElementById("sidebar-title").textContent = messages.sidebarTitle;
   document.querySelectorAll("[data-i18n]").forEach((el) => {
@@ -87,7 +87,7 @@ function applyMessages() {
     el.textContent = messages[key] || "";
   });
 }
-// 監聽外部語系變動
+// storage 語系變更時重新載入 i18n
 chrome.storage.onChanged.addListener((changes, area) => {
   if ((area === "local" || area === "sync") && changes[LANGUAGE_KEY]) {
     const newLang = changes[LANGUAGE_KEY].newValue;
@@ -95,8 +95,8 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
-// ----- 標籤與書籤處理功能 -----
-// 從 local+sync 取得目前聊天室所有書籤
+// ===== Bookmark 與 Hashtag =====
+// 從 local/sync 取得目前 conversation 的有效 bookmark
 function fetchBookmarksWithTags(cb) {
   if (!CURRENT_CHAT_KEY) return cb([]);
   dualGet(CURRENT_CHAT_KEY).then((list) => {
@@ -105,7 +105,7 @@ function fetchBookmarksWithTags(cb) {
   });
 }
 
-// 新增 Hashtag
+// 新增 bookmark hashtag
 function onAddTag(bookmarkId) {
   const tag = prompt(messages.addHashtagPrompt);
   if (!tag) return;
@@ -123,7 +123,7 @@ function onAddTag(bookmarkId) {
     });
   });
 }
-// 移除 Hashtag
+// 移除 bookmark hashtag
 function onRemoveTag(bookmarkId, tag) {
   dualRead(CURRENT_CHAT_KEY).then((list) => {
     const now = Date.now();
@@ -139,12 +139,12 @@ function onRemoveTag(bookmarkId, tag) {
   });
 }
 
-// Hashtag 篩選按鈕
+// 渲染 hashtag filter button
 function renderHashtagList() {
   fetchBookmarksWithTags((list) => {
     const all = list.flatMap((item) => item.hashtags);
     const uniq = Array.from(new Set(all));
-    // 清除不存在的已選標籤
+    // 移除已不存在的 selected hashtag
     selectedTags.forEach((tag) => {
       if (!uniq.includes(tag)) selectedTags.delete(tag);
     });
@@ -166,31 +166,31 @@ function renderHashtagList() {
   });
 }
 
-// ----- 排序功能 -----
-// 讀取排序方式
+// ===== 排序設定 =====
+// 讀取 sidebar sort order
 function getSavedSort() {
   return localStorage.getItem(SORT_KEY) || "added";
 }
-// 儲存排序方式
+// 儲存 sidebar sort order
 function saveSort(sort) {
   localStorage.setItem(SORT_KEY, sort);
 }
 
-// ----- 載入與排序書籤 -----
+// ===== 載入與排序書籤 =====
 function loadSidebarBookmarks() {
   if (!CURRENT_CHAT_KEY) return;
   fetchBookmarksWithTags((list) => {
-    // 標籤篩選
+    // 套用 hashtag filter
     if (selectedTags.size) {
       list = list.filter((item) =>
         (item.hashtags || []).some((tag) => selectedTags.has(tag))
       );
     }
 
-    // 排序
+    // 套用排序策略
     const sortOrder = getSavedSort();
     if (sortOrder === "chat") {
-      // 依聊天順序（DOM 出現順序）
+      // 依 ChatGPT DOM 中的 conversation order 排序
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (!tabs[0]?.id) return renderList(list);
         const origin = new URL(tabs[0].url || "").origin;
@@ -217,7 +217,7 @@ function loadSidebarBookmarks() {
         );
       });
     } else {
-      // 依加入順序（穩定使用 createdAt；舊資料回退 updatedAt）
+      // 依加入時間排序；舊資料 fallback 至 updatedAt
       list.sort((a, b) => {
         const ta = a.createdAt || a.updatedAt || 0;
         const tb = b.createdAt || b.updatedAt || 0;
@@ -228,7 +228,7 @@ function loadSidebarBookmarks() {
   });
 }
 
-// ----- 清理 sidebar -----
+// ===== Sidebar reset 清理 =====
 function clearSidebar() {
   const list = document.getElementById("bookmark-list");
   if (list) list.innerHTML = "";
@@ -237,12 +237,12 @@ function clearSidebar() {
   selectedTags.clear();
 }
 
-// ----- 顯示書籤列表 -----
+// ===== Bookmark list render 書籤列表 =====
 function renderList(list) {
   const container = document.getElementById("bookmark-list");
   container.innerHTML = "";
   list.forEach((item) => {
-    // 超過 MAX_CONTENT_LENGTH 就截斷
+    // 摘要超過上限時截斷顯示
     const fullText = item.content || "";
     const displayText =
       fullText.length > MAX_CONTENT_LENGTH
@@ -261,7 +261,7 @@ function renderList(list) {
         });
       });
     });
-    // 如果有 tags 顯示在書籤下方
+    // 顯示 bookmark tags
     if (item.hashtags.length) {
       const tagLine = document.createElement("div");
       tagLine.className = "tags-list";
@@ -281,7 +281,7 @@ function renderList(list) {
       });
       div.appendChild(tagLine);
     }
-    // 新增標籤按鈕
+    // 新增 hashtag action button
     const btnTag = document.createElement("button");
     btnTag.className = "tag-btn";
     const icon = document.createElement("img");
@@ -295,7 +295,7 @@ function renderList(list) {
   });
 }
 
-// ----- 初始化 & 監聽路由變化 -----
+// ===== Route 與 storage watcher =====
 let BOUND_KEY = null;
 let unbindBookmarkStorage = null;
 
@@ -330,7 +330,7 @@ function applyActiveChatPath(path) {
     return;
   }
 
-  // 有 chatId：切換聊天室或畫面是空的 → 載入
+  // 有 conversation key 時，切換聊天室或空畫面都重新載入
   if (path !== CURRENT_CHAT_KEY || listEmpty) {
     CURRENT_CHAT_KEY = path;
     bindStorageWatcherForKey(CURRENT_CHAT_KEY);
@@ -360,14 +360,14 @@ function bindActiveTabEvents() {
   chrome.windows.onFocusChanged.addListener(() => syncActiveTabState());
 }
 
-// 頁面載入後執行一次初始化；之後以事件驅動為主，低頻輪詢作為備援
+// ===== DOMContentLoaded 初始化 =====
 document.addEventListener("DOMContentLoaded", async () => {
-  // 載入語系與套用文字
+  // 載入語系並套用 i18n
   const lang = await dualGetSetting(LANGUAGE_KEY, "en");
   await loadMessages(lang);
   applyMessages();
 
-  // 初始化書籤
+  // 初始化 bookmark 狀態與 active tab 監聽
   syncActiveTabState();
   bindActiveTabEvents();
   setInterval(syncActiveTabState, SIDEBAR_FALLBACK_POLL_INTERVAL);
@@ -382,27 +382,27 @@ document.addEventListener("DOMContentLoaded", async () => {
         });
         if (!tab?.id) throw new Error("No active tab");
 
-        // 1) 臨時指定此分頁的 popup
+        // 為目前 tab 暫時掛上 popup
         await chrome.action.setPopup({
           tabId: tab.id,
           popup: PATHS.POPUP_PAGE,
         });
 
-        // 2) 立刻開啟（必須在使用者點擊手勢中呼叫）
+        // openPopup 必須在 user gesture 內呼叫
         await chrome.action.openPopup();
 
-        // 3) 立刻要求背景程式清掉（比 setTimeout 更可靠）
+        // 請 background 立即清除 popup 綁定
         chrome.runtime.sendMessage({
           type: MESSAGE_TYPES.CLEAR_ACTION_POPUP_FOR_ACTIVE_TAB,
         });
 
-        // 可留著當備援：確保就算 SW 沒收到訊息，也會清掉
+        // 備援清理，避免 service worker 未收到 message
         setTimeout(
           () => chrome.action.setPopup({ tabId: tab.id, popup: "" }),
           0
         );
       } catch {
-        // 後備視窗已移除，因你要求「只開側欄不開小窗」
+        // 維持只開 sidebar 的設計；失敗時不再開 fallback window
       }
     });
 
@@ -415,7 +415,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   applyMood(await dualGetSetting(MOOD_KEY, "system"));
 });
 
-// ----- 滾動按鈕功能 -----
+// ===== Scroll 控制 =====
 document.getElementById("scroll-top-btn").addEventListener("click", () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     chrome.tabs.sendMessage(tabs[0].id, { type: MESSAGE_TYPES.SCROLL_TO_TOP });

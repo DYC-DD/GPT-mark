@@ -2,11 +2,11 @@ const { LOCALES, STORAGE_KEYS } = self.GPT_MARK;
 const LANGUAGE_KEY = STORAGE_KEYS.SIDEBAR_LANGUAGE;
 const MOOD_KEY = STORAGE_KEYS.SIDEBAR_MOOD;
 
-// 全域儲存翻譯文字
+// ===== i18n 狀態 =====
 let messages = {};
 
-// ----- i18n -----
-// 載入對應語系的語言
+// ===== i18n 設定 =====
+// 載入指定 locale 的 message catalog
 async function loadMessages(lang) {
   const loc = LOCALES[lang] || LOCALES.en;
   const url = chrome.runtime.getURL(`_locales/${loc}/messages.json`);
@@ -16,23 +16,23 @@ async function loadMessages(lang) {
     Object.entries(json).map(([k, v]) => [k, v.message])
   );
 }
-// 將屬性對應的文字填入元素
+// 將 data-i18n 對應文字套用至 UI
 function applyMessages() {
   document.querySelectorAll("[data-i18n]").forEach((el) => {
     const key = el.getAttribute("data-i18n");
     el.textContent = messages[key] || el.textContent;
   });
 }
-// 載入翻譯、套用到頁面、並存到 storage
+// 切換語系並同步寫入 storage
 async function setLanguage(lang) {
   await loadMessages(lang);
   applyMessages();
   dualSetSetting(LANGUAGE_KEY, lang);
 }
 
-// ----- mood -----
+// ===== Theme 設定 =====
 let _mqListener = null;
-// 根據 mode 套用主題，並存到 storage
+// 套用 theme mode，system 模式會監聽 prefers-color-scheme
 function applyRadioMood(mode) {
   document.body.classList.remove("light", "dark");
   if (_mqListener) {
@@ -55,7 +55,7 @@ function applyRadioMood(mode) {
   dualSetSetting(MOOD_KEY, mode);
 }
 
-// ----- 初始化設定 -----
+// ===== 初始化設定 =====
 [LANGUAGE_KEY, MOOD_KEY].forEach(async (k) => {
   const [loc, syn] = await Promise.all([
     chrome.storage.local.get([k]),
@@ -71,12 +71,12 @@ async function initSettings() {
   document.getElementById(`lang-${lang}`).checked = true;
   await setLanguage(lang);
 
-  // 載入並套用主題
+  // 載入並套用 theme
   const mood = await dualGetSetting(MOOD_KEY, "system");
   document.getElementById(`radio-${mood}`).checked = true;
   applyRadioMood(mood);
 
-  // 綁定 radio 變更事件
+  // 綁定 radio change event
   document
     .querySelectorAll('.lang-container input[type="radio"]')
     .forEach((input) => {
@@ -93,7 +93,7 @@ async function initSettings() {
     });
 }
 
-// 綁定匯出按鈕
+// ===== Bookmark 匯出 =====
 document
   .getElementById("download-btn")
   .addEventListener("click", downloadBookmarks);
@@ -160,5 +160,5 @@ async function downloadBookmarks() {
   URL.revokeObjectURL(a.href);
 }
 
-// DOM 載入完成後執行初始化
+// DOM ready 後初始化 popup
 document.addEventListener("DOMContentLoaded", initSettings);

@@ -15,7 +15,7 @@ body {
   transition: background-color 0.3s, color 0.3s;
 }
 
-/* Theme */
+/* ===== Theme 主題 ===== */
 body.light {
   background-color: #ffffff;
   color: #000000;
@@ -25,7 +25,7 @@ body.dark {
   color: #f3f3f3;
 }
 
-/* Top Bar */
+/* ===== Top bar 頂部列 ===== */
 #top-bar {
   display: flex;
   justify-content: center;
@@ -43,7 +43,7 @@ body.dark {
   font-size: 20px;
 }
 
-/* 書籤區塊 */
+/* ===== Bookmark item 書籤項目 ===== */
 .bookmark {
   position: relative;
   padding: 8px 12px;
@@ -65,7 +65,7 @@ body.dark .bookmark {
   color: #f3f3f3;
 }
 
-/* 排序選單容器 */
+/* ===== Sort control 排序控制 ===== */
 #sort-container {
   display: flex;
   align-items: center;
@@ -108,7 +108,7 @@ body.dark #sort-order:hover {
   background-color: #303030;
 }
 
-/* hashtag 區塊 */
+/* ===== Hashtag filter 標籤篩選 ===== */
 #hashtag-container {
   display: flex;
   flex-wrap: wrap;
@@ -152,7 +152,7 @@ body.dark .hashtag-item.selected {
   color: #ffffff;
 }
 
-/* 書籤列表 */
+/* ===== Bookmark list 書籤列表 ===== */
 #bookmark-list {
   flex: 1 1 auto;
   overflow-y: auto;
@@ -161,7 +161,7 @@ body.dark .hashtag-item.selected {
   -ms-overflow-style: none;
 }
 
-/* 書籤內的標籤按鈕 */
+/* ===== Bookmark hashtag action 書籤操作 ===== */
 .bookmark .tag-btn {
   position: absolute;
   top: 50%;
@@ -204,7 +204,7 @@ body.dark .tag-btn .tag-icon {
   filter: brightness(0) invert(1);
 }
 
-/* 書籤內的標籤列表 */
+/* ===== Bookmark tag list 標籤列表 ===== */
 .bookmark .tags-list {
   margin-top: 4px;
   font-size: 12px;
@@ -233,7 +233,7 @@ body.dark .tag-item {
   color: #e0e0e090;
 }
 
-/* 刪除按鈕 */
+/* ===== Tag remove button 移除按鈕 ===== */
 .remove-tag-btn {
   background: transparent;
   border: none;
@@ -257,7 +257,7 @@ body.dark .remove-tag-btn:hover {
   color: #f66;
 }
 
-/* 語言選單 + 上下按鈕容器 */
+/* ===== Bottom controls 底部控制列 ===== */
 #lang-control-group {
   display: flex;
   align-items: center;
@@ -273,7 +273,7 @@ body.dark #lang-control-group {
   border-top-color: rgba(255, 255, 255, 0.05);
 }
 
-/* Scroll 和 Setting 按鈕 */
+/* ===== Scroll/settings buttons 控制按鈕 ===== */
 .scroll-btn,
 .setting-btn {
   background-color: transparent;

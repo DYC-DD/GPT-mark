@@ -5,7 +5,7 @@ const { CHATGPT_MATCH_PATTERNS, MESSAGE_TYPES, PATHS, isAllowedChatOrigin } =
 const MENU_PAGE = "open-sidebar-page";
 const MENU_ACTION = "open-sidebar-action";
 
-// 依分頁網址啟用/停用側欄
+// 依 tab URL 切換 side panel 啟用狀態
 async function updateSidePanelForTab(tabId, url) {
   if (!tabId || !url) {
     try {
@@ -26,40 +26,40 @@ async function updateSidePanelForTab(tabId, url) {
       await chrome.sidePanel.setOptions({ tabId, enabled: false });
     } catch {}
   }
-  // 無論允許與否，都清空 popup，避免在該分頁點圖示彈出設定視窗
+  // 清除 action popup，避免 toolbar click 開啟設定 popup
   await clearActionPopup(tabId);
 }
 
-// 以「最可靠的方式」在指定分頁開側欄（callback 以避免競態）
+// 先設定 side panel 再開啟，避免 setOptions/open race condition
 function openSidePanelWithSetOptions(tabId) {
-  // 直接重新指定一次，並在 callback 內 open
+  // 在 callback 中 open，確保本次設定已生效
   chrome.sidePanel.setOptions(
     { tabId, path: PATHS.SIDEBAR_PAGE, enabled: true },
     () => chrome.sidePanel.open({ tabId }).catch(() => {})
   );
 }
 
-// 初始化：點工具列圖示 → 嘗試開側欄（是否能開由各 tab 的 enabled 決定）
+// 啟用 toolbar icon 直接開啟 side panel 的預設行為
 async function initPanelBehavior() {
   try {
     await chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
   } catch {}
 }
 
-// 建立右鍵選單
+// ===== Context menu 右鍵選單 =====
 async function recreateContextMenus() {
   try {
     await chrome.contextMenus.removeAll();
   } catch {}
   try {
-    // 1) 頁面右鍵：只在允許網域顯示
+    // 頁面右鍵：僅在 ChatGPT 網域顯示
     chrome.contextMenus.create({
       id: MENU_PAGE,
       title: "Open GPT-mark",
       contexts: ["page"],
       documentUrlPatterns: CHATGPT_MATCH_PATTERNS,
     });
-    // 2) 擴充圖示右鍵：各網域都顯示，但點擊時再判斷是否允許
+    // extension icon 右鍵：全域顯示，點擊時再驗證 tab URL
     chrome.contextMenus.create({
       id: MENU_ACTION,
       title: "Open GPT-mark",
@@ -68,11 +68,11 @@ async function recreateContextMenus() {
   } catch {}
 }
 
-// 右鍵選單點擊 → 嘗試開側欄（只在允許網域動作）
+// Context menu 點擊後只在允許網域開啟 side panel
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId !== MENU_PAGE && info.menuItemId !== MENU_ACTION) return;
 
-  // 可靠取得目前分頁
+  // contextMenus 有時不帶 tab，必要時改查 active tab
   let target = tab;
   if (!target || !target.id || !target.url) {
     const [active] = await chrome.tabs.query({
@@ -83,11 +83,11 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
   if (!target?.id || !isAllowedChatOrigin(target.url)) return;
 
-  // 用 callback 版避免 setOptions/open 的競態
+  // 先 setOptions 再 open，避免 side panel 尚未啟用
   openSidePanelWithSetOptions(target.id);
 });
 
-// --- lifecycle wiring ---
+// ===== Extension lifecycle 生命週期 =====
 chrome.runtime.onInstalled.addListener(async () => {
   await initPanelBehavior();
   await chrome.sidePanel.setOptions({ enabled: false }).catch(() => {});
@@ -104,7 +104,7 @@ chrome.runtime.onStartup.addListener(async () => {
   await Promise.all(tabs.map((t) => updateSidePanelForTab(t.id, t.url || "")));
 });
 
-// 分頁網址變更 → 更新 gating
+// tab URL 或載入狀態改變時更新 side panel 啟用條件
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.url) {
     updateSidePanelForTab(tabId, changeInfo.url);
@@ -113,13 +113,13 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 });
 
-// 切換分頁 → 更新 gating
+// active tab 變更時同步 side panel 啟用條件
 chrome.tabs.onActivated.addListener(async ({ tabId }) => {
   const tab = await chrome.tabs.get(tabId);
   updateSidePanelForTab(tabId, tab.url || "");
 });
 
-// 視窗焦點改變 → 同步當前分頁狀態
+// 視窗重新取得焦點時同步 active tab 狀態
 chrome.windows.onFocusChanged.addListener(async () => {
   const [active] = await chrome.tabs.query({
     active: true,
@@ -128,7 +128,7 @@ chrome.windows.onFocusChanged.addListener(async () => {
   if (active?.id) updateSidePanelForTab(active.id, active.url || "");
 });
 
-// --- 新增：清空當前分頁的 action popup 綁定 ---
+// ===== Action popup 清理 =====
 async function clearActionPopup(tabId) {
   try {
     if (tabId) await chrome.action.setPopup({ tabId, popup: "" });
