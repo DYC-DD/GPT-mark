@@ -28,6 +28,7 @@
     CHATGPT_ROUTE_CHANGED: "chatgpt-route-changed",
     CLEAR_ACTION_POPUP_FOR_ACTIVE_TAB: "CLEAR_ACTION_POPUP_FOR_ACTIVE_TAB",
     GET_CHAT_ORDER: "getChatOrder",
+    REFRESH_BOOKMARK_ICONS: "refresh-bookmark-icons",
     SCROLL_TO_BOTTOM: "scroll-to-bottom",
     SCROLL_TO_MESSAGE: "scrollToMessage",
     SCROLL_TO_TOP: "scroll-to-top",
@@ -37,6 +38,7 @@
     BOOKMARK_EMPTY: "assets/icons/bookmarks.svg",
     BOOKMARK_FILLED: "assets/icons/bookmarks-fill.svg",
     HASHTAG: "assets/icons/hashtag.svg",
+    TRASH: "assets/icons/trash.svg",
   });
 
   function normalizeChatPath(pathname = "") {

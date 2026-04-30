@@ -792,6 +792,12 @@
       return;
     }
 
+    // sidebar 刪除 bookmark 後，主動刷新頁面上的 bookmark icon
+    if (message.type === MESSAGE_TYPES.REFRESH_BOOKMARK_ICONS) {
+      refreshBookmarkIcons();
+      return;
+    }
+
     // 捲動到頂部或底部
     if (message.type === MESSAGE_TYPES.SCROLL_TO_TOP) {
       scrollToEdge("top");

@@ -35,6 +35,18 @@
     "message": "Please enter hashtag:",
     "description": "Prompt when adding a hashtag"
   },
+  "addHashtagTooltip": {
+    "message": "Add hashtag",
+    "description": "Tooltip for adding a hashtag to a bookmark"
+  },
+  "removeHashtagTooltip": {
+    "message": "Remove hashtag",
+    "description": "Tooltip for removing a hashtag from a bookmark"
+  },
+  "deleteBookmarkTooltip": {
+    "message": "Delete mark",
+    "description": "Tooltip for deleting a bookmark from the sidebar"
+  },
   "scrollToMessageTooltip": {
     "message": "Click to jump to the message",
     "description": "Tooltip for jumping to the selected message"

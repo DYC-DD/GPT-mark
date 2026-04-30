@@ -19,6 +19,7 @@ const MOOD_KEY = STORAGE_KEYS.SIDEBAR_MOOD;
 const LANGUAGE_KEY = STORAGE_KEYS.SIDEBAR_LANGUAGE;
 
 const HASHTAG_ICON = ICONS.HASHTAG;
+const TRASH_ICON = ICONS.TRASH;
 
 // i18n catalog、目前 conversation key 與 hashtag filter 狀態
 let messages = {};
@@ -135,6 +136,36 @@ function onRemoveTag(bookmarkId, tag) {
     dualSet(CURRENT_CHAT_KEY, updated).then(() => {
       renderHashtagList();
       loadSidebarBookmarks();
+    });
+  });
+}
+
+function refreshActiveTabBookmarkIcons() {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const tab = tabs[0];
+    if (!tab?.id || !isAllowedChatOrigin(tab.url || "")) return;
+
+    chrome.tabs.sendMessage(
+      tab.id,
+      { type: MESSAGE_TYPES.REFRESH_BOOKMARK_ICONS },
+      () => chrome.runtime.lastError
+    );
+  });
+}
+
+// 刪除 bookmark；保留 tombstone 以避免 sync merge 復活舊資料
+function onDeleteBookmark(bookmarkId) {
+  if (!CURRENT_CHAT_KEY) return;
+  dualRead(CURRENT_CHAT_KEY).then((list) => {
+    const now = Date.now();
+    const updated = list.map((it) => {
+      if (it.id !== bookmarkId) return it;
+      return { ...withDefaults(it), deleted: true, updatedAt: now };
+    });
+    dualSet(CURRENT_CHAT_KEY, updated).then(() => {
+      renderHashtagList();
+      loadSidebarBookmarks();
+      refreshActiveTabBookmarkIcons();
     });
   });
 }
@@ -270,7 +301,10 @@ function renderList(list) {
         span.className = "tag-item";
         span.textContent = `# ${tag}`;
         const btn = document.createElement("button");
+        btn.type = "button";
         btn.className = "remove-tag-btn";
+        btn.title = messages.removeHashtagTooltip;
+        btn.setAttribute("aria-label", messages.removeHashtagTooltip);
         btn.textContent = "×";
         btn.addEventListener("click", (e) => {
           e.stopPropagation();
@@ -283,13 +317,35 @@ function renderList(list) {
     }
     // 新增 hashtag action button
     const btnTag = document.createElement("button");
-    btnTag.className = "tag-btn";
+    btnTag.type = "button";
+    btnTag.className = "tag-btn hashtag-btn";
+    btnTag.title = messages.addHashtagTooltip;
+    btnTag.setAttribute("aria-label", messages.addHashtagTooltip);
     const icon = document.createElement("img");
     icon.className = "tag-icon";
     icon.src = chrome.runtime.getURL(HASHTAG_ICON);
     btnTag.appendChild(icon);
-    btnTag.addEventListener("click", () => onAddTag(item.id));
+    btnTag.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onAddTag(item.id);
+    });
     div.appendChild(btnTag);
+
+    // 刪除 bookmark action button
+    const btnTrash = document.createElement("button");
+    btnTrash.type = "button";
+    btnTrash.className = "tag-btn trash-btn";
+    btnTrash.title = messages.deleteBookmarkTooltip;
+    btnTrash.setAttribute("aria-label", messages.deleteBookmarkTooltip);
+    const trashIcon = document.createElement("img");
+    trashIcon.className = "tag-icon";
+    trashIcon.src = chrome.runtime.getURL(TRASH_ICON);
+    btnTrash.appendChild(trashIcon);
+    btnTrash.addEventListener("click", (e) => {
+      e.stopPropagation();
+      onDeleteBookmark(item.id);
+    });
+    div.appendChild(btnTrash);
 
     container.appendChild(div);
   });

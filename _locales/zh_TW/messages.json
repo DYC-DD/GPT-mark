@@ -35,6 +35,18 @@
     "message": "請輸入 Hashtag：",
     "description": "新增 Hashtag 時的提示文字"
   },
+  "addHashtagTooltip": {
+    "message": "新增 Hashtag",
+    "description": "新增書籤 Hashtag 按鈕的提示文字"
+  },
+  "removeHashtagTooltip": {
+    "message": "移除 Hashtag",
+    "description": "移除書籤 Hashtag 按鈕的提示文字"
+  },
+  "deleteBookmarkTooltip": {
+    "message": "刪除 Mark",
+    "description": "刪除書籤按鈕的提示文字"
+  },
   "scrollToMessageTooltip": {
     "message": "點擊跳到該訊息",
     "description": "點擊書籤列表項目以跳回原始訊息"

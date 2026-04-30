@@ -35,6 +35,18 @@
     "message": "ハッシュタグを入力してください：",
     "description": "ハッシュタグ追加のプロンプト"
   },
+  "addHashtagTooltip": {
+    "message": "ハッシュタグを追加",
+    "description": "ブックマークにハッシュタグを追加するボタンのツールチップ"
+  },
+  "removeHashtagTooltip": {
+    "message": "ハッシュタグを削除",
+    "description": "ブックマークからハッシュタグを削除するボタンのツールチップ"
+  },
+  "deleteBookmarkTooltip": {
+    "message": "Markを削除",
+    "description": "サイドバーからブックマークを削除するボタンのツールチップ"
+  },
   "scrollToMessageTooltip": {
     "message": "クリックしてメッセージへ移動",
     "description": "ブックマークリストから元メッセージへ飛ぶツールチップ"

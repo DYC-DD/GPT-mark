@@ -179,6 +179,12 @@ body.dark .hashtag-item.selected {
   align-items: center;
   justify-content: center;
 }
+.bookmark .hashtag-btn {
+  right: 38px;
+}
+.bookmark .trash-btn {
+  right: 2px;
+}
 .bookmark.light .tag-btn {
   background: #e0e0e0;
 }

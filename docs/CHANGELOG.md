@@ -14,6 +14,14 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
   - runtime message types
   - icon 路徑
   - 聊天室路徑正規化工具（`normalizeChatPath()` / `getChatKeyFromPathname()`）
+- sidebar 書籤項目新增 trash 刪除按鈕：
+  - 按鈕樣式與原本 hashtag 按鈕一致
+  - 使用 `assets/icons/trash.svg`
+  - 點擊後以 tombstone 方式標記該 mark 為 deleted，避免 sync merge 復活舊資料
+- 新增 sidebar action buttons 的 i18n tooltip：
+  - 新增 hashtag
+  - 移除 hashtag
+  - 刪除 mark
 
 ### Changed
 
@@ -34,6 +42,8 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
 ### Fixed
 
 - 修正 GPT / assistant 訊息高亮時，藍色外框上緣可能被裁切的問題；user 訊息維持原本 outline 樣式，assistant 訊息改用 inset `box-shadow`
+- 修正從 sidebar trash 刪除 mark 後，ChatGPT 頁面上的 mark 按鈕未立即由 `bookmarks-fill.svg` 更新回 `bookmarks.svg` 的問題
+- 修正滑鼠懸浮在 sidebar action buttons 上時，tooltip 都顯示為 `Click to jump to the message` 的問題
 - 修正 Traditional Chinese locale 中 `themeDark` description 的文字 typo
 - 修正 README note 中的英文 typo
 
