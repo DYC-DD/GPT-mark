@@ -2,7 +2,7 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
-## [3.2.9] - 2026-04-27
+## [3.2.9] - 2026-05-08
 
 ### Added
 
@@ -22,6 +22,10 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
   - 新增 hashtag
   - 移除 hashtag
   - 刪除 mark
+- 新增 sidebar 與 ChatGPT 聊天室背景色自動配對：
+  - content script 會讀取 ChatGPT 頁面的實際背景色與文字色
+  - sidebar 透過 runtime message 同步目前 active ChatGPT tab 的 theme 色值
+  - 讀不到 ChatGPT 色值時會 fallback 至原本的 light / dark / system 設定
 
 ### Changed
 
@@ -31,6 +35,7 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
 - 讓 storage change listener 回傳解除函式，並在聊天室 key 切換時解除舊 watcher，避免 listener 長時間累積
 - 將 sidebar 目前聊天室偵測改為事件驅動為主，透過 content script 路由通知與 tabs events 更新狀態，並將 fallback polling 從 500ms 降為 5000ms
 - 將 extension 與 sidebar / popup 的預設語言改為 English
+- 將 sidebar 的主要背景、文字、書籤卡片、hover、border 等色彩改為 CSS 變數驅動，降低 ChatGPT light / dark mode 與 sidebar 背景的色差
 
 ### Refactored
 
@@ -44,6 +49,10 @@ This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1
 - 修正 GPT / assistant 訊息高亮時，藍色外框上緣可能被裁切的問題；user 訊息維持原本 outline 樣式，assistant 訊息改用 inset `box-shadow`
 - 修正從 sidebar trash 刪除 mark 後，ChatGPT 頁面上的 mark 按鈕未立即由 `bookmarks-fill.svg` 更新回 `bookmarks.svg` 的問題
 - 修正滑鼠懸浮在 sidebar action buttons 上時，tooltip 都顯示為 `Click to jump to the message` 的問題
+- 修正 ChatGPT 頁面 theme 與 sidebar 手動 theme 不一致時，sidebar 被 ChatGPT theme 覆蓋的問題：
+  - sidebar 選 dark 時，ChatGPT light 色值不會覆蓋 sidebar dark
+  - sidebar 選 light 時，ChatGPT dark 色值不會覆蓋 sidebar light
+  - sidebar 選 system 時，會依 sidebar 當下有效 mood 判斷是否套用 ChatGPT 精準色值
 - 修正 Traditional Chinese locale 中 `themeDark` description 的文字 typo
 - 修正 README note 中的英文 typo
 

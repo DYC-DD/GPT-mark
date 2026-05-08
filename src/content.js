@@ -350,6 +350,105 @@
       : "brightness(0)";
   }
 
+  const CHAT_SURFACE_COLOR_VARS = [
+    "--main-surface-primary",
+    "--bg-primary",
+    "--background-primary",
+    "--surface-primary",
+  ];
+  const CHAT_TEXT_COLOR_VARS = [
+    "--text-primary",
+    "--text-color",
+    "--foreground",
+  ];
+
+  function isTransparentColor(color) {
+    return (
+      !color ||
+      color === "transparent" ||
+      color === "rgba(0, 0, 0, 0)" ||
+      color === "rgb(0 0 0 / 0)"
+    );
+  }
+
+  function normalizeCssColor(value) {
+    const raw = (value || "").trim();
+    if (!raw || !CSS.supports("color", raw)) return "";
+
+    const probe = document.createElement("span");
+    probe.style.color = raw;
+    document.documentElement.appendChild(probe);
+    const color = window.getComputedStyle(probe).color;
+    probe.remove();
+
+    return isTransparentColor(color) ? "" : color;
+  }
+
+  function getCssVarColor(names) {
+    const style = window.getComputedStyle(document.documentElement);
+    for (const name of names) {
+      const color = normalizeCssColor(style.getPropertyValue(name));
+      if (color) return color;
+    }
+    return "";
+  }
+
+  function getElementBackgroundColor(element) {
+    let el = element;
+    while (el && el instanceof Element) {
+      const color = window.getComputedStyle(el).backgroundColor;
+      if (!isTransparentColor(color)) return color;
+      el = el.parentElement;
+    }
+    return "";
+  }
+
+  function parseRgbColor(color) {
+    const match = (color || "").match(
+      /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/
+    );
+    if (!match) return null;
+    return {
+      r: Number(match[1]),
+      g: Number(match[2]),
+      b: Number(match[3]),
+    };
+  }
+
+  function isDarkColor(color) {
+    const rgb = parseRgbColor(color);
+    if (!rgb) return document.documentElement.classList.contains("dark");
+
+    const toLinear = (value) => {
+      const channel = value / 255;
+      return channel <= 0.03928
+        ? channel / 12.92
+        : ((channel + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance =
+      0.2126 * toLinear(rgb.r) +
+      0.7152 * toLinear(rgb.g) +
+      0.0722 * toLinear(rgb.b);
+
+    return luminance < 0.45;
+  }
+
+  function getChatThemeColors() {
+    const main = document.querySelector("main, [role='main']") || document.body;
+    const background =
+      getCssVarColor(CHAT_SURFACE_COLOR_VARS) ||
+      getElementBackgroundColor(main) ||
+      getElementBackgroundColor(document.body) ||
+      "#ffffff";
+    const isDark = isDarkColor(background);
+    const text =
+      getCssVarColor(CHAT_TEXT_COLOR_VARS) ||
+      normalizeCssColor(window.getComputedStyle(main).color) ||
+      (isDark ? "#f3f3f3" : "#000000");
+
+    return { background, text, isDark };
+  }
+
   const TURN_SELECTOR =
     '[data-testid^="conversation-turn-"], section[data-turn-id], article, [data-turn-id]';
   const MESSAGE_SELECTOR = "[data-message-id]";
@@ -602,12 +701,34 @@
     });
   }
 
+  let themeSyncTimer = null;
+
+  function notifyChatThemeChanged() {
+    if (themeSyncTimer) clearTimeout(themeSyncTimer);
+    themeSyncTimer = setTimeout(() => {
+      chrome.runtime.sendMessage(
+        {
+          type: MESSAGE_TYPES.CHATGPT_THEME_CHANGED,
+          colors: getChatThemeColors(),
+        },
+        () => chrome.runtime.lastError
+      );
+    }, 80);
+  }
+
   // 監聽 <html> class 變化以偵測 dark/light 切換
   function observeThemeChange() {
-    const observer = new MutationObserver(() => updateBookmarkIconsFilter());
+    const observer = new MutationObserver(() => {
+      updateBookmarkIconsFilter();
+      notifyChatThemeChanged();
+    });
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ["class"],
+      attributeFilter: ["class", "style"],
+    });
+    observer.observe(document.body, {
+      attributes: true,
+      attributeFilter: ["class", "style"],
     });
   }
 
@@ -789,6 +910,12 @@
     // 提供 sidebar 排序所需的 message order
     if (message.type === MESSAGE_TYPES.GET_CHAT_ORDER) {
       sendResponse?.({ order: getChatOrder() });
+      return;
+    }
+
+    // 提供 sidebar 同步 ChatGPT 實際背景色
+    if (message.type === MESSAGE_TYPES.GET_CHAT_THEME_COLORS) {
+      sendResponse?.({ colors: getChatThemeColors() });
       return;
     }
 

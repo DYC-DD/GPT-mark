@@ -26,8 +26,10 @@
   const MESSAGE_TYPES = Object.freeze({
     CHATGPT_READY: "chatgpt-ready",
     CHATGPT_ROUTE_CHANGED: "chatgpt-route-changed",
+    CHATGPT_THEME_CHANGED: "chatgpt-theme-changed",
     CLEAR_ACTION_POPUP_FOR_ACTIVE_TAB: "CLEAR_ACTION_POPUP_FOR_ACTIVE_TAB",
     GET_CHAT_ORDER: "getChatOrder",
+    GET_CHAT_THEME_COLORS: "getChatThemeColors",
     REFRESH_BOOKMARK_ICONS: "refresh-bookmark-icons",
     SCROLL_TO_BOTTOM: "scroll-to-bottom",
     SCROLL_TO_MESSAGE: "scrollToMessage",

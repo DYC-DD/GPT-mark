@@ -6,23 +6,72 @@ body {
 
 body {
   font-family: "Google Sans Code", monospace;
+  --sidebar-bg: #ffffff;
+  --sidebar-fg: #000000;
+  --sidebar-surface-bg: color-mix(
+    in srgb,
+    var(--sidebar-bg) 94%,
+    var(--sidebar-fg) 6%
+  );
+  --sidebar-hover-bg: color-mix(
+    in srgb,
+    var(--sidebar-bg) 90%,
+    var(--sidebar-fg) 10%
+  );
+  --sidebar-selected-bg: color-mix(
+    in srgb,
+    var(--sidebar-bg) 88%,
+    var(--sidebar-fg) 12%
+  );
+  --sidebar-tag-bg: color-mix(
+    in srgb,
+    var(--sidebar-bg) 82%,
+    var(--sidebar-fg) 18%
+  );
+  --sidebar-muted-fg: color-mix(
+    in srgb,
+    var(--sidebar-fg) 56%,
+    transparent
+  );
+  --sidebar-border: color-mix(
+    in srgb,
+    var(--sidebar-fg) 10%,
+    transparent
+  );
+  --sidebar-control-border: color-mix(
+    in srgb,
+    var(--sidebar-fg) 38%,
+    transparent
+  );
+  --sidebar-selected-ring: color-mix(
+    in srgb,
+    var(--sidebar-fg) 38%,
+    transparent
+  );
+  --sidebar-low-border: color-mix(
+    in srgb,
+    var(--sidebar-fg) 5%,
+    transparent
+  );
   padding: 10px;
   margin: 0;
   height: 100vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background-color: var(--sidebar-bg);
+  color: var(--sidebar-fg);
   transition: background-color 0.3s, color 0.3s;
 }
 
 /* ===== Theme 主題 ===== */
 body.light {
-  background-color: #ffffff;
-  color: #000000;
+  --sidebar-bg: #ffffff;
+  --sidebar-fg: #000000;
 }
 body.dark {
-  background-color: #212121;
-  color: #f3f3f3;
+  --sidebar-bg: #212121;
+  --sidebar-fg: #f3f3f3;
 }
 
 /* ===== Top bar 頂部列 ===== */
@@ -55,14 +104,14 @@ body.dark {
 }
 
 body.light .bookmark {
-  background: #f4f4f4;
-  border: 1px solid #ececec;
-  color: #000000;
+  background: var(--sidebar-surface-bg);
+  border: 1px solid var(--sidebar-border);
+  color: var(--sidebar-fg);
 }
 body.dark .bookmark {
-  background: #303030;
-  border: 1px solid #454545;
-  color: #f3f3f3;
+  background: var(--sidebar-surface-bg);
+  border: 1px solid var(--sidebar-border);
+  color: var(--sidebar-fg);
 }
 
 /* ===== Sort control 排序控制 ===== */
@@ -80,9 +129,10 @@ body.dark .bookmark {
 #sort-order {
   appearance: none;
   padding: 6px 10px;
-  border: 1px solid #aaa;
+  border: 1px solid var(--sidebar-control-border);
   border-radius: 999px;
   background-color: transparent;
+  color: var(--sidebar-fg);
   cursor: pointer;
   transition: background-color 0.2s;
   font-size: 14px;
@@ -95,17 +145,17 @@ body.dark .bookmark {
 
 body.light #sort-order {
   background-color: transparent;
-  color: #000;
+  color: var(--sidebar-fg);
 }
 body.light #sort-order:hover {
-  background-color: #e8e8e8;
+  background-color: var(--sidebar-hover-bg);
 }
 body.dark #sort-order {
   background-color: transparent;
-  color: #fff;
+  color: var(--sidebar-fg);
 }
 body.dark #sort-order:hover {
-  background-color: #303030;
+  background-color: var(--sidebar-hover-bg);
 }
 
 /* ===== Hashtag filter 標籤篩選 ===== */
@@ -126,30 +176,30 @@ body.dark #sort-order:hover {
 }
 
 body.light .hashtag-item {
-  border-color: #ececec;
+  border-color: var(--sidebar-border);
 }
 body.light .hashtag-item:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-  border-color: #dddddd;
+  background-color: var(--sidebar-hover-bg);
+  border-color: var(--sidebar-control-border);
 }
 body.light .hashtag-item.selected {
-  background-color: rgba(0, 0, 0, 0.05);
-  border-color: #cccccc;
-  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.2);
-  color: #333333;
+  background-color: var(--sidebar-selected-bg);
+  border-color: var(--sidebar-control-border);
+  box-shadow: 0 0 0 2px var(--sidebar-selected-ring);
+  color: var(--sidebar-fg);
 }
 body.dark .hashtag-item {
-  border-color: #454545;
+  border-color: var(--sidebar-border);
 }
 body.dark .hashtag-item:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: #5a5a5a;
+  background-color: var(--sidebar-hover-bg);
+  border-color: var(--sidebar-control-border);
 }
 body.dark .hashtag-item.selected {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: #666666;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5);
-  color: #ffffff;
+  background-color: var(--sidebar-selected-bg);
+  border-color: var(--sidebar-control-border);
+  box-shadow: 0 0 0 2px var(--sidebar-selected-ring);
+  color: var(--sidebar-fg);
 }
 
 /* ===== Bookmark list 書籤列表 ===== */
@@ -185,18 +235,16 @@ body.dark .hashtag-item.selected {
 .bookmark .trash-btn {
   right: 2px;
 }
-.bookmark.light .tag-btn {
-  background: #e0e0e0;
-}
-.bookmark.dark .tag-btn {
-  background: #505050;
-  color: #fff;
+body.light .bookmark .tag-btn,
+body.dark .bookmark .tag-btn {
+  background: var(--sidebar-tag-bg);
+  color: var(--sidebar-fg);
 }
 .tag-btn:hover {
-  background-color: rgba(0, 0, 0, 0.05);
+  background-color: var(--sidebar-hover-bg);
 }
 body.dark .tag-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: var(--sidebar-hover-bg);
 }
 .tag-btn .tag-icon {
   width: 16px;
@@ -231,12 +279,12 @@ body.dark .tag-btn .tag-icon {
 }
 
 body.light .tag-item {
-  background-color: #e0e0e0;
-  color: #50505090;
+  background-color: var(--sidebar-tag-bg);
+  color: var(--sidebar-muted-fg);
 }
 body.dark .tag-item {
-  background-color: #505050;
-  color: #e0e0e090;
+  background-color: var(--sidebar-tag-bg);
+  color: var(--sidebar-muted-fg);
 }
 
 /* ===== Tag remove button 移除按鈕 ===== */
@@ -251,13 +299,13 @@ body.dark .tag-item {
 }
 
 body.light .remove-tag-btn {
-  color: #50505090;
+  color: var(--sidebar-muted-fg);
 }
 body.light .remove-tag-btn:hover {
   color: #f66;
 }
 body.dark .remove-tag-btn {
-  color: #e0e0e090;
+  color: var(--sidebar-muted-fg);
 }
 body.dark .remove-tag-btn:hover {
   color: #f66;
@@ -273,17 +321,14 @@ body.dark .remove-tag-btn:hover {
   position: sticky;
   bottom: 0;
   background: inherit;
-  border-top: 1px dashed rgba(0, 0, 0, 0.05);
-}
-body.dark #lang-control-group {
-  border-top-color: rgba(255, 255, 255, 0.05);
+  border-top: 1px dashed var(--sidebar-low-border);
 }
 
 /* ===== Scroll/settings buttons 控制按鈕 ===== */
 .scroll-btn,
 .setting-btn {
   background-color: transparent;
-  border: 1px solid #aaa;
+  border: 1px solid var(--sidebar-control-border);
   border-radius: 50%;
   width: 28px;
   height: 28px;
@@ -304,8 +349,8 @@ body.dark #lang-control-group {
 
 .scroll-btn:hover,
 .setting-btn:hover {
-  background-color: rgba(128, 128, 128, 0.2);
-  border-color: #888;
+  background-color: var(--sidebar-hover-bg);
+  border-color: var(--sidebar-control-border);
 }
 
 body.dark .scroll-btn img,

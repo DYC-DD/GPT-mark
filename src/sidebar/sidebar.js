@@ -30,7 +30,8 @@ let selectedTags = new Set();
 chrome.runtime.onMessage.addListener((msg) => {
   if (
     msg.type === MESSAGE_TYPES.CHATGPT_READY ||
-    msg.type === MESSAGE_TYPES.CHATGPT_ROUTE_CHANGED
+    msg.type === MESSAGE_TYPES.CHATGPT_ROUTE_CHANGED ||
+    msg.type === MESSAGE_TYPES.CHATGPT_THEME_CHANGED
   ) {
     syncActiveTabState();
   }
@@ -38,34 +39,104 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 // ===== Theme 設定 =====
 let _mqListener = null;
+let activeMood = "system";
+
+function removeMoodListener() {
+  if (!_mqListener) return;
+  _mqListener.mq.removeEventListener("change", _mqListener.fn);
+  _mqListener = null;
+}
+
 // 套用 sidebar theme，system 模式會綁定 prefers-color-scheme
 function applyMood(mood) {
+  activeMood = mood || "system";
   document.body.classList.remove("light", "dark");
   // 切換前先移除舊的 system listener
-  if (_mqListener) {
-    _mqListener.mq.removeEventListener("change", _mqListener.fn);
-    _mqListener = null;
-  }
+  removeMoodListener();
 
-  if (mood === "system") {
+  if (activeMood === "system") {
     // system theme 依 OS 設定即時切換
     const mq = window.matchMedia("(prefers-color-scheme: dark)");
     document.body.classList.add(mq.matches ? "dark" : "light");
     const fn = (e) => {
       document.body.classList.toggle("dark", e.matches);
       document.body.classList.toggle("light", !e.matches);
+      clearChatThemeColors();
+      syncActiveTabTheme();
     };
     mq.addEventListener("change", fn);
     _mqListener = { mq, fn };
   } else {
     // 固定套用 light/dark
-    document.body.classList.add(mood);
+    document.body.classList.add(activeMood);
   }
 }
+
+function clearChatThemeColors() {
+  document.body.classList.remove("chatgpt-theme-synced");
+  document.body.style.removeProperty("--sidebar-bg");
+  document.body.style.removeProperty("--sidebar-fg");
+  applyMood(activeMood);
+}
+
+function applyChatThemeColors(colors) {
+  if (!colors?.background || !colors?.text) {
+    clearChatThemeColors();
+    return;
+  }
+
+  const sidebarIsDark =
+    activeMood === "system"
+      ? document.body.classList.contains("dark")
+      : activeMood === "dark";
+
+  if (colors.isDark !== sidebarIsDark) {
+    clearChatThemeColors();
+    return;
+  }
+
+  document.body.classList.remove("light", "dark");
+  document.body.classList.add(sidebarIsDark ? "dark" : "light");
+  document.body.classList.add("chatgpt-theme-synced");
+  document.body.style.setProperty("--sidebar-bg", colors.background);
+  document.body.style.setProperty("--sidebar-fg", colors.text);
+}
+
+function syncActiveTabTheme(tab, didQueryActiveTab = false) {
+  if (!tab) {
+    if (didQueryActiveTab) {
+      clearChatThemeColors();
+      return;
+    }
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) =>
+      syncActiveTabTheme(tabs[0], true)
+    );
+    return;
+  }
+
+  if (!tab?.id || !isAllowedChatOrigin(tab.url || "")) {
+    clearChatThemeColors();
+    return;
+  }
+
+  chrome.tabs.sendMessage(
+    tab.id,
+    { type: MESSAGE_TYPES.GET_CHAT_THEME_COLORS },
+    (response) => {
+      if (chrome.runtime.lastError || !response?.colors) {
+        clearChatThemeColors();
+        return;
+      }
+      applyChatThemeColors(response.colors);
+    }
+  );
+}
+
 // storage theme 變更時即時更新 sidebar
 chrome.storage.onChanged.addListener((changes, area) => {
   if ((area === "local" || area === "sync") && changes[MOOD_KEY]) {
     applyMood(changes[MOOD_KEY].newValue);
+    syncActiveTabTheme();
   }
 });
 
@@ -397,13 +468,16 @@ function applyActiveChatPath(path) {
 
 function syncActiveTabState() {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (!tabs[0]?.url) return;
-    if (!isAllowedChatOrigin(tabs[0].url)) {
+    const tab = tabs[0];
+    syncActiveTabTheme(tab);
+
+    if (!tab?.url) return;
+    if (!isAllowedChatOrigin(tab.url)) {
       applyActiveChatPath(null);
       return;
     }
 
-    const path = getChatKeyFromPathname(new URL(tabs[0].url).pathname);
+    const path = getChatKeyFromPathname(new URL(tab.url).pathname);
     applyActiveChatPath(path);
   });
 }
