@@ -12,6 +12,19 @@
 
 </div>
 
+> [!CAUTION]
+> ChatGPT Mark is currently paused and no longer recommended for active use.
+>
+> Recent ChatGPT frontend changes — especially virtualized conversation rendering — have made bookmark navigation unreliable.
+>
+> Older messages are often not present in the page DOM until dynamically re-rendered, causing long-distance bookmark jumps to become slow, inconsistent, or completely fail.
+>
+> Nearby bookmarks may still work in some cases, but reliable navigation can no longer be guaranteed.
+>
+> Major development is currently paused indefinitely. Only occasional small maintenance fixes may still be accepted.
+>
+> **Sorry, I might be dead!**
+
 A Chrome extension built for the ChatGPT web interface — add bookmarks, navigate with a sidebar, and send messages faster with double-press Enter. Perfect for staying organized and effortlessly revisiting key moments in long conversations.
 
 ## Feature
