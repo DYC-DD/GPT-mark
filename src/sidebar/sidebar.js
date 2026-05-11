@@ -544,17 +544,3 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
   applyMood(await dualGetSetting(MOOD_KEY, "system"));
 });
-
-// ===== Scroll 控制 =====
-document.getElementById("scroll-top-btn").addEventListener("click", () => {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    chrome.tabs.sendMessage(tabs[0].id, { type: MESSAGE_TYPES.SCROLL_TO_TOP });
-  });
-});
-document.getElementById("scroll-bottom-btn").addEventListener("click", () => {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    chrome.tabs.sendMessage(tabs[0].id, {
-      type: MESSAGE_TYPES.SCROLL_TO_BOTTOM,
-    });
-  });
-});

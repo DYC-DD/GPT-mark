@@ -31,9 +31,7 @@
     GET_CHAT_ORDER: "getChatOrder",
     GET_CHAT_THEME_COLORS: "getChatThemeColors",
     REFRESH_BOOKMARK_ICONS: "refresh-bookmark-icons",
-    SCROLL_TO_BOTTOM: "scroll-to-bottom",
     SCROLL_TO_MESSAGE: "scrollToMessage",
-    SCROLL_TO_TOP: "scroll-to-top",
   });
 
   const ICONS = Object.freeze({

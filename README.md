@@ -23,7 +23,6 @@ A Chrome extension built for the ChatGPT web interface — add bookmarks, naviga
 - Supports sorting by **chat order** or **bookmark creation order**
 - Add or remove custom **#hashtags** for classification
 - Filter bookmarks in the sidebar by **#hashtags**
-- Quick scroll buttons provide smooth scrolling to the **top / bottom** of the chat
 
 **Quick Send While Editing Messages**
 

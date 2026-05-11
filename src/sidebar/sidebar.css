@@ -119,6 +119,7 @@ body.dark .bookmark {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+  gap: 8px;
   margin-bottom: 10px;
 }
 #sort-container label {
@@ -311,21 +312,7 @@ body.dark .remove-tag-btn:hover {
   color: #f66;
 }
 
-/* ===== Bottom controls 底部控制列 ===== */
-#lang-control-group {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 12px 0;
-  position: sticky;
-  bottom: 0;
-  background: inherit;
-  border-top: 1px dashed var(--sidebar-low-border);
-}
-
-/* ===== Scroll/settings buttons 控制按鈕 ===== */
-.scroll-btn,
+/* ===== Settings button 設定按鈕 ===== */
 .setting-btn {
   background-color: transparent;
   border: 1px solid var(--sidebar-control-border);
@@ -340,20 +327,17 @@ body.dark .remove-tag-btn:hover {
   transition: background-color 0.2s, border-color 0.2s;
 }
 
-.scroll-btn img,
 .setting-btn img {
   width: 18px;
   height: 18px;
   pointer-events: none;
 }
 
-.scroll-btn:hover,
 .setting-btn:hover {
   background-color: var(--sidebar-hover-bg);
   border-color: var(--sidebar-control-border);
 }
 
-body.dark .scroll-btn img,
 body.dark .setting-btn img {
   filter: brightness(0) invert(1);
 }

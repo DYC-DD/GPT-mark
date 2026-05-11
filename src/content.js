@@ -16,6 +16,14 @@
 
     // Scroll target 頂部預留距離，避免訊息貼齊容器上緣
     SCROLL_TOP_PADDING: 60,
+    // Bookmark 目標可能因 ChatGPT 虛擬列表尚未渲染，需先分段捲動尋找
+    SCROLL_FIND_TIMEOUT: 25000,
+    SCROLL_FIND_STEP_DELAY: 480,
+    SCROLL_FIND_IDLE_LIMIT: 4,
+    SCROLL_VERIFY_INITIAL_DELAY: 520,
+    SCROLL_VERIFY_INTERVAL: 220,
+    SCROLL_VERIFY_TIMEOUT: 2200,
+    SCROLL_TARGET_TOLERANCE: 32,
 
     // Bookmark button 注入重試上限與間隔
     INJECT_RETRY_TIMES: 5,
@@ -174,16 +182,95 @@
     return canScrollByStyle && canScrollBySize;
   }
 
+  function delay(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  function normalizeScrollContainer(container) {
+    if (
+      container === document.body ||
+      container === document.documentElement ||
+      container === window
+    ) {
+      return document.scrollingElement || document.documentElement;
+    }
+    return container || document.scrollingElement || document.documentElement;
+  }
+
+  function isDocumentScrollContainer(container) {
+    const normalized = normalizeScrollContainer(container);
+    return (
+      normalized === document.scrollingElement ||
+      normalized === document.documentElement ||
+      normalized === document.body
+    );
+  }
+
+  function getScrollTop(container) {
+    const normalized = normalizeScrollContainer(container);
+    if (isDocumentScrollContainer(normalized)) {
+      return window.scrollY || normalized.scrollTop || document.body.scrollTop;
+    }
+    return normalized.scrollTop;
+  }
+
+  function getScrollHeight(container) {
+    const normalized = normalizeScrollContainer(container);
+    if (isDocumentScrollContainer(normalized)) {
+      return Math.max(
+        normalized.scrollHeight,
+        document.body.scrollHeight,
+        document.documentElement.scrollHeight
+      );
+    }
+    return normalized.scrollHeight;
+  }
+
+  function getViewportHeight(container) {
+    const normalized = normalizeScrollContainer(container);
+    return isDocumentScrollContainer(normalized)
+      ? window.innerHeight
+      : normalized.clientHeight;
+  }
+
+  function getMaxScrollTop(container) {
+    return Math.max(
+      0,
+      getScrollHeight(container) - getViewportHeight(container)
+    );
+  }
+
+  function getScrollViewportRect(container) {
+    const normalized = normalizeScrollContainer(container);
+    if (isDocumentScrollContainer(normalized)) {
+      return {
+        top: 0,
+        bottom: window.innerHeight,
+        height: window.innerHeight,
+      };
+    }
+    return normalized.getBoundingClientRect();
+  }
+
+  function scrollContainerTo(container, top, behavior = "auto") {
+    const normalized = normalizeScrollContainer(container);
+    if (isDocumentScrollContainer(normalized)) {
+      window.scrollTo({ top, behavior });
+      return;
+    }
+    normalized.scrollTo({ top, behavior });
+  }
+
   // 從指定節點向上尋找最近的 scroll container
   function findNearestScrollableAncestor(startEl) {
     let el = startEl;
 
     while (el && el !== document.body && el !== document.documentElement) {
-      if (isScrollableY(el)) return el;
+      if (isScrollableY(el)) return normalizeScrollContainer(el);
       el = el.parentElement;
     }
 
-    return document.scrollingElement || document.documentElement;
+    return normalizeScrollContainer(document.scrollingElement);
   }
 
   // 取得 ChatGPT conversation 的主要 scroll container
@@ -208,7 +295,7 @@
       }
     }
 
-    return document.scrollingElement || document.documentElement;
+    return normalizeScrollContainer(document.scrollingElement);
   }
 
   // ===== Bookmark data/storage 書籤資料 =====
@@ -795,6 +882,224 @@
     highlightTimers.set(msgElem, { fadeTimer, clearTimer });
   }
 
+  function isRenderableElement(el) {
+    if (!(el instanceof HTMLElement)) return false;
+    const rect = el.getBoundingClientRect();
+    const style = window.getComputedStyle(el);
+    return (
+      el.isConnected &&
+      el.getClientRects().length > 0 &&
+      rect.width > 0 &&
+      rect.height > 0 &&
+      style.display !== "none" &&
+      style.visibility !== "hidden"
+    );
+  }
+
+  function findMessageElementById(messageId) {
+    const selector = `[data-message-id="${CSS.escape(messageId)}"]`;
+    const candidates = Array.from(document.querySelectorAll(selector));
+    if (!candidates.length) return null;
+    return candidates.find(isRenderableElement) || candidates[0];
+  }
+
+  function getScrollTargetForMessage(msgElem) {
+    return getTurnContainer(msgElem) || msgElem;
+  }
+
+  function getScrollContainerForTarget(targetElem) {
+    if (targetElem instanceof HTMLElement) {
+      return findNearestScrollableAncestor(
+        targetElem.parentElement || targetElem
+      );
+    }
+    return normalizeScrollContainer(getChatScrollContainer());
+  }
+
+  function getTargetScrollTop(targetElem, container) {
+    const normalized = normalizeScrollContainer(container);
+    const viewportRect = getScrollViewportRect(normalized);
+    const targetRect = targetElem.getBoundingClientRect();
+    const curTop = getScrollTop(normalized);
+    const maxScroll = getMaxScrollTop(normalized);
+    const nextTop =
+      curTop +
+      (targetRect.top - viewportRect.top) -
+      CONFIG.SCROLL_TOP_PADDING;
+
+    return Math.max(0, Math.min(nextTop, maxScroll));
+  }
+
+  function scrollTargetIntoPosition(targetElem, behavior = "auto") {
+    const container = getScrollContainerForTarget(targetElem);
+    const targetTop = getTargetScrollTop(targetElem, container);
+    scrollContainerTo(container, targetTop, behavior);
+    return { container, targetTop };
+  }
+
+  function isScrollTargetSettled(targetElem, container) {
+    const normalized = normalizeScrollContainer(container);
+    const viewportRect = getScrollViewportRect(normalized);
+    const targetRect = targetElem.getBoundingClientRect();
+    const delta =
+      targetRect.top - viewportRect.top - CONFIG.SCROLL_TOP_PADDING;
+    const curTop = getScrollTop(normalized);
+    const maxScroll = getMaxScrollTop(normalized);
+    const visible =
+      targetRect.bottom > viewportRect.top &&
+      targetRect.top < viewportRect.bottom;
+
+    if (Math.abs(delta) <= CONFIG.SCROLL_TARGET_TOLERANCE) return true;
+    if (!visible) return false;
+
+    const atTop = curTop <= CONFIG.SCROLL_TARGET_TOLERANCE;
+    const atBottom = curTop >= maxScroll - CONFIG.SCROLL_TARGET_TOLERANCE;
+    return (atTop && delta < 0) || (atBottom && delta > 0);
+  }
+
+  function isTargetVisible(targetElem, container) {
+    const viewportRect = getScrollViewportRect(container);
+    const targetRect = targetElem.getBoundingClientRect();
+    return (
+      targetRect.bottom > viewportRect.top &&
+      targetRect.top < viewportRect.bottom
+    );
+  }
+
+  function getRenderedMessageSnapshot(container) {
+    const elems = Array.from(document.querySelectorAll(MESSAGE_SELECTOR));
+    return {
+      top: Math.round(getScrollTop(container)),
+      max: Math.round(getMaxScrollTop(container)),
+      height: Math.round(getScrollHeight(container)),
+      count: elems.length,
+      first: elems[0]?.dataset?.messageId || "",
+      last: elems[elems.length - 1]?.dataset?.messageId || "",
+    };
+  }
+
+  function hasScrollSnapshotChanged(a, b) {
+    if (!a || !b) return true;
+    return (
+      Math.abs(a.top - b.top) > CONFIG.SCROLL_TARGET_TOLERANCE ||
+      Math.abs(a.max - b.max) > CONFIG.SCROLL_TARGET_TOLERANCE ||
+      Math.abs(a.height - b.height) > CONFIG.SCROLL_TARGET_TOLERANCE ||
+      a.count !== b.count ||
+      a.first !== b.first ||
+      a.last !== b.last
+    );
+  }
+
+  async function verifyScrollTarget(messageId, requestId) {
+    const startTime = performance.now();
+    let correctionCount = 0;
+
+    while (performance.now() - startTime < CONFIG.SCROLL_VERIFY_TIMEOUT) {
+      if (requestId !== activeScrollRequestId) {
+        return { ok: false, reason: "cancelled" };
+      }
+
+      const msgElem = findMessageElementById(messageId);
+      if (!msgElem) {
+        await delay(CONFIG.SCROLL_VERIFY_INTERVAL);
+        continue;
+      }
+
+      const targetElem = getScrollTargetForMessage(msgElem);
+      const container = getScrollContainerForTarget(targetElem);
+
+      if (isScrollTargetSettled(targetElem, container)) {
+        return { ok: true };
+      }
+
+      const correctionBehavior =
+        correctionCount === 0 && isTargetVisible(targetElem, container)
+          ? "smooth"
+          : "auto";
+      correctionCount += 1;
+      scrollTargetIntoPosition(targetElem, correctionBehavior);
+      await delay(
+        correctionBehavior === "smooth"
+          ? CONFIG.SCROLL_VERIFY_INITIAL_DELAY
+          : CONFIG.SCROLL_VERIFY_INTERVAL
+      );
+    }
+
+    const msgElem = findMessageElementById(messageId);
+    if (!msgElem) return { ok: false, reason: "not-found" };
+    return { ok: true, reason: "best-effort" };
+  }
+
+  async function scanForMessage(messageId, direction, requestId, deadline) {
+    const container = normalizeScrollContainer(getChatScrollContainer());
+    const step = Math.max(getViewportHeight(container) * 0.8, 420);
+    let idleCount = 0;
+    let previous = getRenderedMessageSnapshot(container);
+
+    while (performance.now() < deadline) {
+      if (requestId !== activeScrollRequestId) return null;
+
+      const msgElem = findMessageElementById(messageId);
+      if (msgElem) return msgElem;
+
+      const curTop = getScrollTop(container);
+      const maxScroll = getMaxScrollTop(container);
+      const nextTop =
+        direction === "up"
+          ? Math.max(0, curTop - step)
+          : Math.min(maxScroll, curTop + step);
+
+      scrollContainerTo(container, nextTop, "smooth");
+      await delay(CONFIG.SCROLL_FIND_STEP_DELAY);
+
+      const nextMsgElem = findMessageElementById(messageId);
+      if (nextMsgElem) return nextMsgElem;
+
+      const current = getRenderedMessageSnapshot(container);
+      const changed = hasScrollSnapshotChanged(previous, current);
+      const atEdge =
+        direction === "up"
+          ? current.top <= CONFIG.SCROLL_TARGET_TOLERANCE
+          : current.top >= current.max - CONFIG.SCROLL_TARGET_TOLERANCE;
+
+      idleCount = atEdge && !changed ? idleCount + 1 : 0;
+      if (idleCount >= CONFIG.SCROLL_FIND_IDLE_LIMIT) return null;
+
+      previous = current;
+    }
+
+    return null;
+  }
+
+  async function loadMessageIntoDom(messageId, requestId) {
+    let msgElem = findMessageElementById(messageId);
+    if (msgElem) return msgElem;
+
+    const container = normalizeScrollContainer(getChatScrollContainer());
+    const initialTop = getScrollTop(container);
+    const maxScroll = getMaxScrollTop(container);
+    const progress = maxScroll > 0 ? initialTop / maxScroll : 1;
+    const directions = progress < 0.2 ? ["down", "up"] : ["up", "down"];
+    const deadline = performance.now() + CONFIG.SCROLL_FIND_TIMEOUT;
+
+    for (const direction of directions) {
+      msgElem = await scanForMessage(
+        messageId,
+        direction,
+        requestId,
+        deadline
+      );
+      if (msgElem) return msgElem;
+
+      if (performance.now() >= deadline) break;
+      scrollContainerTo(container, initialTop, "auto");
+      await delay(CONFIG.SCROLL_FIND_STEP_DELAY);
+    }
+
+    scrollContainerTo(container, initialTop, "auto");
+    return null;
+  }
+
   // ===== SPA route 監聽 =====
   const ROUTE_EVENT = "gptmark-location-change";
   let lastPathname = window.location.pathname;
@@ -835,37 +1140,28 @@
   }
 
   // ===== Runtime message 入口 =====
+  let activeScrollRequestId = 0;
+
   // sidebar 要求定位到指定 message
-  function scrollToMessageId(messageId) {
-    const msgElem = document.querySelector(
-      `[data-message-id="${CSS.escape(messageId)}"]`
-    );
+  async function scrollToMessageId(messageId) {
+    const requestId = ++activeScrollRequestId;
+    const msgElem = await loadMessageIntoDom(messageId, requestId);
+
     if (!msgElem) return { ok: false, reason: "not-found" };
-
-    const chatContainer = getChatScrollContainer();
-
-    if (chatContainer) {
-      // 以 container 座標計算相對位置，確保 scroll 目標正確
-      const containerRect = chatContainer.getBoundingClientRect();
-      const msgRect = msgElem.getBoundingClientRect();
-      const curTop = chatContainer.scrollTop;
-
-      const alignTop = curTop + (msgRect.top - containerRect.top);
-      const maxScroll = chatContainer.scrollHeight - chatContainer.clientHeight;
-
-      const targetTop = Math.max(
-        0,
-        Math.min(alignTop - CONFIG.SCROLL_TOP_PADDING, maxScroll)
-      );
-
-      chatContainer.scrollTo({ top: targetTop, behavior: "smooth" });
-    } else {
-      // fallback：找不到 container 時改用原生 scrollIntoView
-      msgElem.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (requestId !== activeScrollRequestId) {
+      return { ok: false, reason: "cancelled" };
     }
 
-    highlightMessage(msgElem);
-    return { ok: true };
+    const targetElem = getScrollTargetForMessage(msgElem);
+    scrollTargetIntoPosition(targetElem, "smooth");
+
+    await delay(CONFIG.SCROLL_VERIFY_INITIAL_DELAY);
+    const ret = await verifyScrollTarget(messageId, requestId);
+    const finalMsgElem = ret.ok ? findMessageElementById(messageId) : null;
+    if (finalMsgElem && requestId === activeScrollRequestId) {
+      highlightMessage(finalMsgElem);
+    }
+    return ret;
   }
 
   // 回傳目前 DOM 中的 conversation message order
@@ -876,35 +1172,16 @@
     return Array.from(elems).map((el) => el.dataset.messageId);
   }
 
-  // 捲動 conversation 至頂部或底部
-  function scrollToEdge(edgeType) {
-    const chatContainer = getChatScrollContainer();
-    if (!chatContainer) return false;
-
-    if (edgeType === "top") {
-      chatContainer.scrollTo({ top: 0, behavior: "smooth" });
-      return true;
-    }
-
-    if (edgeType === "bottom") {
-      chatContainer.scrollTo({
-        top: chatContainer.scrollHeight,
-        behavior: "smooth",
-      });
-      return true;
-    }
-    return false;
-  }
-
   // 統一處理 sidebar/content runtime message
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (!message || !message.type) return;
 
     // 定位 bookmark message
     if (message.type === MESSAGE_TYPES.SCROLL_TO_MESSAGE) {
-      const ret = scrollToMessageId(message.id);
-      sendResponse?.({ result: ret.ok ? "scrolled" : ret.reason });
-      return;
+      scrollToMessageId(message.id).then((ret) => {
+        sendResponse?.({ result: ret.ok ? "scrolled" : ret.reason });
+      });
+      return true;
     }
 
     // 提供 sidebar 排序所需的 message order
@@ -922,16 +1199,6 @@
     // sidebar 刪除 bookmark 後，主動刷新頁面上的 bookmark icon
     if (message.type === MESSAGE_TYPES.REFRESH_BOOKMARK_ICONS) {
       refreshBookmarkIcons();
-      return;
-    }
-
-    // 捲動到頂部或底部
-    if (message.type === MESSAGE_TYPES.SCROLL_TO_TOP) {
-      scrollToEdge("top");
-      return;
-    }
-    if (message.type === MESSAGE_TYPES.SCROLL_TO_BOTTOM) {
-      scrollToEdge("bottom");
       return;
     }
   });
