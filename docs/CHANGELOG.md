@@ -2,6 +2,12 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [1.0.1] - 2026-05-19
+
+### Fixed
+
+- 修正一般輸入模式下 `Shift + Enter` 無法換行的問題，現在僅在編輯模式中攔截並處理換行快捷鍵。
+
 ## [1.0.0] - 2026-05-18
 
 ### Added

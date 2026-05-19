@@ -147,14 +147,14 @@
       return;
     }
 
-    if (event.key === "Enter" && event.shiftKey) {
-      event.preventDefault();
-      insertNewline(input);
+    if (!isEditingMode(input)) {
       resetEnterState();
       return;
     }
 
-    if (!isEditingMode(input)) {
+    if (event.key === "Enter" && event.shiftKey) {
+      event.preventDefault();
+      insertNewline(input);
       resetEnterState();
       return;
     }
