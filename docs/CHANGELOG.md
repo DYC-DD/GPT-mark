@@ -2,6 +2,13 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [1.0.2] - 2026-05-24
+
+### Fixed
+
+- 收窄編輯模式判斷範圍，避免一般輸入框被頁面上其他 `Cancel` / `Send` 類按鈕誤判為編輯模式。
+- 新增 `window.__doubleEnterSendDebug()`，方便在 ChatGPT 頁面 console 檢查目前焦點輸入框的判斷結果。
+
 ## [1.0.1] - 2026-05-19
 
 ### Fixed
