@@ -2,6 +2,12 @@
 
 This changelog follows the [Keep a Changelog](https://keepachangelog.com/zh-TW/1.1.0/) format to track version updates.
 
+## [1.0.3] - 2026-05-26
+
+### Fixed
+
+- 修正新版 ChatGPT 編輯訊息按鈕顯示為 `傳送` 時，編輯模式無法雙擊 `Enter` 送出的問題。
+
 ## [1.0.2] - 2026-05-24
 
 ### Fixed

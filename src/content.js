@@ -56,9 +56,9 @@
 
   function looksLikeEditedSubmitButton(button) {
     const text = getButtonText(button);
-    if (/Send message|Send|傳送|送出/i.test(text)) return false;
+    if (/Send message/i.test(text)) return false;
 
-    return /Save\s*&\s*Submit|Save and submit|Submit|Save|儲存並提交|保存并提交|儲存|保存|提交/i.test(
+    return /Save\s*&\s*Submit|Save and submit|Submit|Save|Send|傳送|送出|儲存並提交|保存并提交|儲存|保存|提交/i.test(
       text
     );
   }
